@@ -1,63 +1,38 @@
 #ifndef token_h
 #define token_h
+#include "TokenType.hpp"
 #include <string>
 #include <iostream>
 #include <ostream>
+#include <optional>
 
-
-enum TokenType {
-	tok_eof = 0 ,
-
-	//operators
-	tok_plus=1,
-	tok_minus=2,
-	tok_slash=3,
-	tok_star=4,
-	tok_equal=5, 
-	tok_equal_equal=6,
-	tok_bang=7,
-	tok_bang_equal=8,
-
-	// Keywords.
-	tok_and=9,
-	tok_or=10,
-	tok_true=11,
-	tok_false=12,
-
-	// commands
-	tok_def=13,
-	tok_extern=14,
-
-	// primary
-	tok_identifier=15,
-	tok_string=16,
-	tok_number=17,
-	tok_class = 18,
-	tok_else = 19,
-	tok_for = 20,
-	tok_print = 21,
-	tok_return = 22,
-	tok_fun = 23,
-	tok_nil = 24,
-	tok_if = 25,
-	tok_super = 26,
-	tok_this = 27,
-	tok_var = 28,
-	tok_while = 29,
-};
 
 
 class Token {
-	 TokenType mTokenType;
-	 std::string mIdentifierStr;
-	 double mNumberVal;
+	
+	TokenType mTokenType;
+
+	 // Lexeme is only used for operators and strings
+	 std::optional<std::string> lexeme;
+
+	 // If identifier type then it has an identifier name
+	 std::optional<std::string> mIdentifierStr;
+
+	 // If number then it's value is here
+	 std::optional<double> mNumberVal;
+	 
 	 int mLine;
 
 	public:	
 		Token() = default;
-		Token(TokenType type, std::string identStr,double numVal,int mLine);
-		inline std::string& getName() { return this->mIdentifierStr;};
-		inline double getVal() { return this->mNumberVal; };
+		Token(TokenType type, const int mLine);
+		Token(TokenType type,const std::optional<double> numVal, const int mLine);
+		Token(TokenType type, const std::optional<std::string> identStr, const int mLine);
+
+		// Constructor for operators and lexemes
+		Token(const TokenType type, const std::optional<char> lexeme, const int mLine);
+		inline  std::optional<std::string>& getName() { return this->mIdentifierStr;};
+		inline  std::optional<double>& getVal() { return this->mNumberVal; };
 		inline int getLine() { return this->mLine; };
 		inline TokenType getType() { return this->mTokenType; };
 		friend std::ostream& operator<< (std::ostream& os, Token& obj);
