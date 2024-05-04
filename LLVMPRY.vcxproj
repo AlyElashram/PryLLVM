@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +128,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Expr.hpp" />
     <ClInclude Include="ErrorReporter.hpp" />
+    <ClInclude Include="Parser.hpp" />
     <ClInclude Include="Scanner.hpp" />
     <ClInclude Include="Token.hpp" />
   </ItemGroup>
