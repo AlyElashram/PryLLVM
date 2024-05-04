@@ -110,7 +110,7 @@ TokenType Scanner::checkKeyword(int start, int length,
 	// comapre lengths of both 
 	// Compare strings
 	bool flag = myStr.compare(rest) == 0;
-	if (current - TokenStart == start + length && myStr.compare(rest) == 0)
+	if (flag)
 	{
 		return type;
 	}
@@ -122,13 +122,23 @@ TokenType Scanner::identifierType(size_t start, size_t current) {
 	switch (this->mSourceCode[start]) {
 	case 'a': return checkKeyword(1, 2, start, current, std::string("nd"), tok_and);
 	case 'c': return checkKeyword(1, 4, start, current, "lass", tok_class);
-	case 'e': return checkKeyword(1, 3, start, current, "lse", tok_else);
+	case'd': return checkKeyword(1, 2, start, current, "ef", tok_def);
+	case 'e': 
+		if (start - current > 1) {
+			switch (this->mSourceCode[start + 1]) {
+			case 'l':
+				return checkKeyword(2, 3, start, current, "lse", tok_else);
+			case 'x':
+				return checkKeyword(2, 4, start, current, "xtern", tok_extern);
+			}
+		}
+		break;
 	case 'f':
 		if (start - current > 1) {
 			switch (this->mSourceCode[start + 1]) {
-			case 'a': return checkKeyword(2, 3, start, current, "lse", tok_false);
-			case 'o': return checkKeyword(2, 1, start, current, "r", tok_for);
-			case 'u': return checkKeyword(2, 1, start, current, "n", tok_fun);
+			case 'a': return checkKeyword(2, 3, start+1, current, "lse", tok_false);
+			case 'o': return checkKeyword(2, 1, start+1, current, "r", tok_for);
+			case 'u': return checkKeyword(2, 1, start+1, current, "n", tok_fun);
 			}
 		}
 		break;
@@ -142,8 +152,8 @@ TokenType Scanner::identifierType(size_t start, size_t current) {
 	case 't':
 		if (current - start > 1) {
 			switch (this->mSourceCode[start + 1]) {
-			case 'h': return checkKeyword(2, 2, start, current, "is", tok_this);
-			case 'r': return checkKeyword(2, 2, start, current, "ue", tok_true);
+			case 'h': return checkKeyword(2, 2, start+1, current, "is", tok_this);
+			case 'r': return checkKeyword(2, 2, start+1, current, "ue", tok_true);
 			}
 		}
 		break;
