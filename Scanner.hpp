@@ -13,7 +13,7 @@ class Scanner {
 	std::vector<Token> mTokens;
 	ErrorReporter reporter;
 
-public : 
+public:
 	Scanner(const ErrorReporter& reporter);
 	void getTokens();
 	void readFile(const std::string& path);
@@ -29,6 +29,7 @@ public :
 	void identifier();
 	void string();
 	void scan(const std::string& path);
+	inline const std::vector<Token>& getTokenVector() { return this->mTokens; };
 	void addEOF(Token token) {
 		this->addToken(token);
 		this->mTokens.shrink_to_fit();
