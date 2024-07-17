@@ -5,38 +5,27 @@
 #include <iostream>
 #include <ostream>
 #include <optional>
+#include <variant>
 
 
 
 class Token {
-	
 	TokenType mTokenType;
+	std::variant<std::monostate, int, double, std::string> value;
+	std::string lexeme;
+	int mLine;
 
-
-	 // contains actual string of charecters for operators and strings
-	 std::optional<std::string> mIdentifierStr;
-
-	 // If number then it's value is here
-	 std::optional<double> mNumberVal;
-	 
-	 int mLine;
-
-	public:	
-		Token() = default;
-		// For EOF only
-		Token(TokenType type, const int mLine);
-
-		//For Numbers
-		Token(TokenType type,const std::optional<double> numVal, const int mLine);
-		
-		//For anything else
-		Token(TokenType type, const std::optional<std::string> identStr, const int mLine);
-
-	
-		inline  std::optional<std::string>& getName() { return this->mIdentifierStr;};
-		inline  std::optional<double>& getVal() { return this->mNumberVal; };
-		inline const int getLine() { return this->mLine; };
-		inline TokenType getType() { return this->mTokenType; };
-		friend std::ostream& operator<< (std::ostream& os, Token& obj);
-}; 
+public:
+	Token() = default;
+	Token(TokenType type, const std::variant<std::monostate, int, double, std::string> val, std::string lexeme, const int mLine);
+	inline const int getLine() { return this->mLine; };
+	inline const std::variant< std::monostate, int, double, std::string> getValue() const { return value; };
+	inline const int getLine() const { return this->mLine; };
+	inline TokenType getType() { return this->mTokenType; };
+	inline const TokenType getType() const { return this->mTokenType; };
+	inline std::string getLexeme() { return this->lexeme; };
+	inline const std::string getLexeme() const { return this->lexeme; };
+	void printVariantType(const std::variant<std::monostate, int, double, std::string>& var);
+	friend std::ostream& operator<< (std::ostream& os, Token& obj);
+};
 #endif // !token

@@ -14,3 +14,7 @@ void ErrorReporter::error(const int& line, const std::string& message) {
 void ErrorReporter::error(const int& line, const int& column,const std::string& message) {
 	std::cout << message + " \n" << "At Line: " << line << " \n" << "At index: " << column;
 }
+void ErrorReporter::parsingError(const std::string& message) {
+	std::cout << message;
+}
+

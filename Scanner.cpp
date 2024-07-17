@@ -68,16 +68,18 @@ void Scanner::number() {
 			fractional.push_back(peek());
 			advance();
 		}
-		addToken(Token(tok_number, std::optional<double>(std::stod(wholeNum + '.' + fractional)), this->mCurrentLine));
+		addToken(Token(tok_number, std::stod(wholeNum + '.' + fractional) , wholeNum + '.' + fractional, this->mCurrentLine));
 		return;
 	}
-	addToken(Token(tok_number, std::optional<double>(std::stod(wholeNum)), this->mCurrentLine));
+	Token token = Token(tok_number, std::stoi(wholeNum), wholeNum, this->mCurrentLine);
+	addToken(token);
 }
 void Scanner::identifier() {
 	size_t startingIndex = index;
 	while (std::isalpha(peek()) || std::isdigit(peek())) advance();
 	TokenType type = identifierType(startingIndex, index);
-	addToken(Token(type, std::optional<std::string>(this->mSourceCode.substr(startingIndex, index - startingIndex)), this->mCurrentLine));
+	std::string lexeme = this->mSourceCode.substr(startingIndex, index - startingIndex);
+	addToken(Token(type, lexeme,lexeme, this->mCurrentLine));
 
 }
 void Scanner::string() {
@@ -95,7 +97,8 @@ void Scanner::string() {
 
 	// The closing quote.
 	advance();
-	addToken(Token(tok_string, std::optional<std::string>(this->mSourceCode.substr(startingIndex, index - startingIndex)), this->mCurrentLine));
+	std::string lexeme = this->mSourceCode.substr(startingIndex, index - startingIndex);
+	addToken(Token(tok_string,lexeme,lexeme, this->mCurrentLine));
 
 }
 
@@ -170,61 +173,70 @@ void Scanner::getTokens() {
 
 		switch (peek()) {
 		case '*':
-			addToken(Token(tok_star, "*", this->mCurrentLine));
+			addToken(Token(tok_star,std::monostate{}, "*", this->mCurrentLine));
 			advance();
 			break;
 		case '(':
-			addToken(Token(tok_left_paren, "(", this->mCurrentLine));
+			addToken(Token(tok_left_paren, std::monostate{}, "(", this->mCurrentLine));
+			advance();
 			break;
 		case ')':
-			addToken(Token(tok_right_paren, ")", this->mCurrentLine));
+			addToken(Token(tok_right_paren, std::monostate{}, ")", this->mCurrentLine));
+			advance();
 			break;
 		case '{':
-			addToken(Token(tok_left_brace, "{", this->mCurrentLine));
+			addToken(Token(tok_left_brace, std::monostate{}, "{", this->mCurrentLine));
+			advance();
 			break;
 		case '}':
-			addToken(Token(tok_right_brace, "}", this->mCurrentLine));
+			addToken(Token(tok_right_brace, std::monostate{}, "}", this->mCurrentLine));
+			advance();
 			break;
 		case ',':
-			addToken(Token(tok_comma, ",", this->mCurrentLine));
+			addToken(Token(tok_comma, std::monostate{}, ",", this->mCurrentLine));
+			advance();
 			break;
 		case '.':
-			addToken(Token(tok_dot, ".", this->mCurrentLine));
+			addToken(Token(tok_dot, std::monostate{}, ".", this->mCurrentLine));
+			advance();
 			break;
 		case '-':
-			addToken(Token(tok_minus, "-", this->mCurrentLine));
+			addToken(Token(tok_minus, std::monostate{}, "-", this->mCurrentLine));
+			advance();
 			break;
 		case '+':
-			addToken(Token(tok_plus, "+", this->mCurrentLine));
+			addToken(Token(tok_plus, std::monostate{}, "+", this->mCurrentLine));
+			advance();
 			break;
 		case ';':
-			addToken(Token(tok_semicolon, ";", this->mCurrentLine));
+			addToken(Token(tok_semicolon, std::monostate{}, ";", this->mCurrentLine));
+			advance();
 			break;
 		case '!':
 			if (match('=')) {
-				addToken(Token(tok_bang_equal, "!=", this->mCurrentLine));
+				addToken(Token(tok_bang_equal, std::monostate{}, "!=", this->mCurrentLine));
 				advance();
 				break;
 			}
-			addToken(Token(tok_bang, "!", this->mCurrentLine));
+			addToken(Token(tok_bang, std::monostate{}, "!", this->mCurrentLine));
 			advance();
 			break;
 		case '<':
 			if (match('=')) {
-				addToken(Token(tok_less_equal, "<=", this->mCurrentLine));
+				addToken(Token(tok_less_equal, std::monostate{}, "<=", this->mCurrentLine));
 				advance();
 				break;
 			}
-			addToken(Token(tok_less, "<", this->mCurrentLine));
+			addToken(Token(tok_less, std::monostate{}, "<", this->mCurrentLine));
 			advance();
 			break;
 		case '>':
 			if (match('=')) {
-				addToken(Token(tok_greater_equal, ">=", this->mCurrentLine));
+				addToken(Token(tok_greater_equal, std::monostate{}, ">=", this->mCurrentLine));
 				advance();
 				break;
 			}
-			addToken(Token(tok_greater, ">", this->mCurrentLine));
+			addToken(Token(tok_greater, std::monostate{}, ">", this->mCurrentLine));
 			advance();
 			break;
 		case '/':
@@ -235,16 +247,16 @@ void Scanner::getTokens() {
 				}
 				break;
 			}
-			addToken(Token(tok_slash, "/", this->mCurrentLine));
+			addToken(Token(tok_slash, std::monostate{}, "/", this->mCurrentLine));
 			advance();
 			break;
 		case '=':
 			if (match('=')) {
-				addToken(Token(tok_equal_equal, "==", this->mCurrentLine));
+				addToken(Token(tok_equal_equal, std::monostate{}, "==", this->mCurrentLine));
 				advance();
 				break;
 			}
-			addToken(Token(tok_equal, "=", this->mCurrentLine));
+			addToken(Token(tok_equal, std::monostate{}, "=", this->mCurrentLine));
 			advance();
 			break;
 		case '\n':
@@ -268,7 +280,7 @@ void Scanner::getTokens() {
 		}
 	}
 	if (isAtEnd()) {
-		addEOF(Token(tok_eof, this->mCurrentLine));
+		addToken(Token(tok_eof, std::monostate{}, "\0",this->mCurrentLine));
 		return;
 	}
 }
