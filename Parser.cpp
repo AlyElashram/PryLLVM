@@ -1,5 +1,17 @@
 #include "Parser.hpp"
-
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+#include <map>
+using namespace llvm;
 std::unique_ptr<Expr> Parser::parseUnaryExpression()
 {
 	return std::unique_ptr<Expr>();
@@ -25,7 +37,7 @@ std::unique_ptr<Expr> Parser::number() {
 			return parseIdentifier();
 		}
 		else if constexpr (std::is_same_v<T, std::monostate>) {
-			reporter.parsingError("Why are we sending mono state into a number parser?");
+			std::cout << "Why are we sending mono state into a number parser?";
 			return nullptr;
 		}
 		}, curTok.getValue());
@@ -57,9 +69,42 @@ std::unique_ptr<Expr> Parser::parseIdentifier()
 	const Token& curTok = getToken();
 	// el mafrood hena hayerga3ly string
 	auto val = std::get<std::string>(curTok.getValue());
-	auto result = std::make_unique<VariableExpr>(val);
 	advance();
-	return std::move(result);
+	auto currentToken = getToken();
+	if (currentToken.getType() != tok_left_paren) {
+		// Not a Call for a function then you can make it a variable reference
+		return std::make_unique<VariableExpr>(val);
+	}
+	// else it's a function we need to parse the arguments
+	// advance to eat the opening bracket (
+	advance();
+	std::vector<std::unique_ptr<Expr>> Args;
+	while (true) {
+		// Arguments can be expressions
+		if (auto Arg = parseExpression()) {
+			// if Parse Expression doesn't return a null ptr
+			Args.push_back(std::move(Arg));
+		}
+		else {
+			// Could Not Parse the expression probably an error occured
+			return nullptr;
+		}
+		if (getToken().getType() == tok_right_paren) {
+			// We reached the end of the function call
+			break;
+		}
+		if (getToken().getType() != tok_comma) {
+			std::cout << "Expected ')' or ',' in argument list";
+			return nullptr;
+		}
+		// Eat the comma and repeat the loop
+		advance();
+	}
+
+	// Eat the ')'.
+	advance();
+	// Return a Call Expression with val equal to the function name and Args as the arguments
+	return std::make_unique<CallExpr>(val, std::move(Args));
 }
 
 std::unique_ptr<Expr> Parser::parseGroupingExpression()
@@ -88,9 +133,10 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseGroupingExpression();
 	case tok_eof:
 	default:
+		std::cout << "Unknown token when expecting an expression";
 		return nullptr;
 	};
-	
+
 }
 int Parser::GetTokPrecedence()
 {
@@ -140,5 +186,114 @@ std::unique_ptr<Expr> Parser::parseExpression() {
 	if (!LHS)
 		return nullptr;
 
-	return parseBinOpRHS(0, std::move(LHS));
+	if (auto val = parseBinOpRHS(0, std::move(LHS))) {
+		return val;
+	}
 }
+/// prototype
+///   ::= id '(' id* ')'
+std::unique_ptr<PrototypeAST> Parser::parsePrototype()
+{
+	if (getToken().getType() != tok_identifier) {
+		std::cout << "Expected function name in prototype";
+		return nullptr;
+	}
+
+	std::string FnName = std::get<std::string>(getToken().getValue());
+	advance();
+
+	if (getToken().getType() != tok_left_paren) {
+		std::cout << "Expected '(' in prototype";
+		return nullptr;
+	}
+
+	// Read the list of argument names.
+	std::vector<std::string> ArgNames;
+	while (getToken().getType() == tok_identifier) {
+		ArgNames.push_back(std::get<std::string>(getToken().getValue()));
+		advance();
+	}
+	if (getToken().getType() != tok_right_paren) {
+		std::cout << "Expected ')' in prototype";
+		return nullptr;
+	}
+	// success.
+	advance();  // eat ')'.
+
+	return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+}
+/// definition ::= 'def' prototype expression
+std::unique_ptr<FunctionAST> Parser::parseDefinition()
+{
+	advance();  // eat def.
+	auto Proto = parsePrototype();
+	if (!Proto) return nullptr;
+	//Eat Opening Curly Brace
+	if (getToken().getType() != tok_left_brace) {
+		std::cout << "Expected '{' in function definition";
+		return nullptr;
+	}
+	advance();
+	auto E = parseExpression();
+	if (!E) {
+		return nullptr;
+	}
+
+	//Eat Closing Curly Brace
+	if (getToken().getType() != tok_right_brace) {
+		std::cout << "Expected '}' to close function definition";
+		return nullptr;
+	}
+	return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+}
+
+std::unique_ptr<PrototypeAST> Parser::ParseExtern()
+{
+	advance();  // eat extern.
+	return parsePrototype();
+}
+std::unique_ptr<FunctionAST> Parser::parseTopLevelExpression() {
+	if (auto E = parseExpression()) {
+		// Make an anonymous proto.
+		auto Proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+		return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+	}
+	return nullptr;
+}
+
+void Parser::mainLoop() {
+	while (!isAtEnd()) {
+		switch (getToken().getType()) {
+		case tok_eof:
+			return;
+		case tok_def:
+			if (auto fn = parseDefinition()) {
+				fn->codegen();
+			}
+			else {
+				// Skip token for error recovery.
+				advance();
+			}
+			break;
+		case tok_extern:
+			if (auto fn = ParseExtern()) {
+				fn->codegen();
+			}
+			else {
+				// Skip token for error recovery.
+				advance();
+			}
+			break;
+		default:
+			if (auto fn = parseTopLevelExpression()) {
+				fn->codegen();
+			}
+			else {
+				// Skip token for error recovery.
+				advance();
+			}
+			break;
+		}
+	}
+}
+
