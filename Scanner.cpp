@@ -5,10 +5,9 @@
 #include <fstream>
 #include <ctype.h>
 static size_t index = 0;
-Scanner::Scanner(const ErrorReporter& reporter) {
+Scanner::Scanner() {
 	Scanner::mCurrentLine = 0;
 	Scanner::mSourceCode = "";
-	Scanner::reporter = reporter;
 }
 
 void Scanner::readFile(const std::string& path) {
@@ -90,8 +89,7 @@ void Scanner::string() {
 	}
 
 	if (isAtEnd()) {
-		reporter.error(this->mCurrentLine, index, "Unterminated String");
-		reporter.setSyntaxError(true);
+		std::cout << this->mCurrentLine << index << "Unterminated String";
 		return;
 	}
 
@@ -273,8 +271,7 @@ void Scanner::getTokens() {
 			else if (std::isalpha(lastChar)) { identifier(); }
 			else {
 				// Unmatched Characters
-				reporter.setSyntaxError(true);
-				reporter.error(this->mCurrentLine, "Unrecognized Character Supplied: " + peek());
+				std::cout << this->mCurrentLine << " Unrecognized Character Supplied: "  << peek();
 			}
 			break;
 		}

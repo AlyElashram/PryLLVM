@@ -5,16 +5,13 @@
 #include <iostream>
 #include <vector>
 #include "Token.hpp"
-#include "ErrorReporter.hpp"
 
 class Scanner {
 	int mCurrentLine;
 	std::string mSourceCode;
 	std::vector<Token> mTokens;
-	ErrorReporter reporter;
-
 public:
-	Scanner(const ErrorReporter& reporter);
+	Scanner();
 	void getTokens();
 	void readFile(const std::string& path);
 	inline const std::string& getSourceCode() { return this->mSourceCode; };
