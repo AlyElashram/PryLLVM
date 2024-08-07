@@ -1,5 +1,3 @@
-#include "Token.hpp"
-#include "Expr.hpp"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -23,13 +21,17 @@ class Compiler {
         TheModule = std::make_unique<llvm::Module>("my cool jit", *TheContext);
         Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
     }
-
 public:
     static Compiler& getInstance() {
         static Compiler instance;
         return instance;
     }
 
+    ~Compiler() {
+        TheContext.release();
+        Builder.release();
+        TheModule.release();
+    };
     // Delete copy constructor and assignment operator
     Compiler(const Compiler&) = delete;
     Compiler& operator=(const Compiler&) = delete;
@@ -40,6 +42,12 @@ public:
 	Value* emitSubtraction(Value* Left, Value* Right);
 	Value* emitMultiplication(Value* Left, Value* Right);
 	Value* emitDivision(Value* Left, Value* Right);
+    Value* emitLessThan(Value* Left, Value* Right);
+    Value* emitLessThanOrEqual(Value* Left, Value* Right);
+    Value* emitGreaterThan(Value* Left, Value* Right);
+    Value* emitGreaterThanOrEqual(Value* Left, Value* Right);
+    Value* emitEquality(Value* Left, Value* Right);
+    Value* emitInequality(Value* Left, Value* Right);
     Function* getFunction(std::string name) {
         return TheModule->getFunction(name);
     };

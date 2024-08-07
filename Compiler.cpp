@@ -1,37 +1,56 @@
 #include "Compiler.hpp"
 using namespace llvm;
 
-
 Value* Compiler::emitInt(int value) {
 	return ConstantFP::get(*TheContext, APFloat(value + 0.0));
 }
 Value* Compiler::emitDouble(double value) {
 	return ConstantFP::get(*TheContext, APFloat(value));
 }
-
 Value* Compiler::emitAddition(Value* Left, Value* Right)
 {
 	return Builder->CreateFAdd(Left, Right, "addtmp");
 }
-
 Value* Compiler::emitSubtraction(Value* Left, Value* Right)
 {
-    return Builder->CreateFSub(Left, Right, "subtmp");
+	return Builder->CreateFSub(Left, Right, "subtmp");
 }
-
 Value* Compiler::emitMultiplication(Value* Left, Value* Right)
 {
 	return Builder->CreateFMul(Left, Right, "multmp");
 }
-
 Value* Compiler::emitDivision(Value* Left, Value* Right)
 {
 	return Builder->CreateFDiv(Left, Right, "divtmp");
 }
+Value* Compiler::emitLessThan(Value* Left, Value* Right) {
+	Left = Builder->CreateFCmpULT(Left, Right, "cmptmp");
+	return Builder->CreateUIToFP(Left, Type::getDoubleTy(*TheContext), "booltmp");
+}
+Value* Compiler::emitLessThanOrEqual(Value* Left, Value* Right)
+{
+	return Builder->CreateFCmpULE(Left, Right, "cmptmp");
+}
+Value* Compiler::emitGreaterThan(Value* Left, Value* Right)
+{
+	return Builder->CreateFCmpUGT(Left, Right, "cmptmp");
+}
+Value* Compiler::emitGreaterThanOrEqual(Value* Left, Value* Right)
+{
+	return Builder->CreateFCmpUGE(Left, Right, "cmptmp");
+}
+Value* Compiler::emitEquality(Value* Left, Value* Right)
+{
+	return Builder->CreateFCmpUEQ(Left, Right, "cmptmp");
+}
+Value* Compiler::emitInequality(Value* Left, Value* Right)
+{
+	return Builder->CreateFCmpUNE(Left, Right, "cmptmp");
+}
 Value* Compiler::emitCall(llvm::Function* F, std::vector<Value*> Args, std::string name) {
 	return Builder->CreateCall(F, Args, name);
 }
-llvm::Function* Compiler::emitPrototype(const std::string& name, std::vector<std::string> args) {
+Function* Compiler::emitPrototype(const std::string& name, std::vector<std::string> args) {
 	std::vector<Type*> Doubles(args.size(),
 		Type::getDoubleTy(*TheContext));
 	FunctionType* FT =
@@ -44,24 +63,23 @@ llvm::Function* Compiler::emitPrototype(const std::string& name, std::vector<std
 		Arg.setName(args[Idx++]);
 	return F;
 }
-
 Function* Compiler::emitFunction(Function* TheFunction, Value* retVal)
 {
-    // Create a new basic block to start insertion into.
-    BasicBlock* BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
-    Builder->SetInsertPoint(BB);
+	// Create a new basic block to start insertion into.
+	BasicBlock* BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
+	Builder->SetInsertPoint(BB);
 
-    // Record the function arguments in the NamedValues map.
-    NamedValues.clear();
-    for (auto& Arg : TheFunction->args())
-        NamedValues[std::string(Arg.getName())] = &Arg;
+	// Record the function arguments in the NamedValues map.
+	NamedValues.clear();
+	for (auto& Arg : TheFunction->args())
+		NamedValues[std::string(Arg.getName())] = &Arg;
 
-        // Finish off the function.
-        Builder->CreateRet(retVal);
+	// Finish off the function.
+	Builder->CreateRet(retVal);
 
-        // Validate the generated code, checking for consistency.
-        verifyFunction(*TheFunction);
+	// Validate the generated code, checking for consistency.
+	verifyFunction(*TheFunction);
 
-        return TheFunction;
+	return TheFunction;
 
 }
