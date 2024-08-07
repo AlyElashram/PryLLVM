@@ -16,11 +16,6 @@ std::unique_ptr<Expr> Parser::parseUnaryExpression()
 {
 	return std::unique_ptr<Expr>();
 }
-
-std::unique_ptr<Expr> Parser::parseBinaryExpression()
-{
-	return std::unique_ptr<Expr>();
-}
 std::unique_ptr<Expr> Parser::number() {
 	const Token& curTok = getToken();
 
@@ -33,11 +28,9 @@ std::unique_ptr<Expr> Parser::number() {
 		else if constexpr (std::is_same_v<T, double>) {
 			return parseDoubleExpression();
 		}
-		else if constexpr (std::is_same_v<T, std::string>) {
-			return parseIdentifier();
-		}
-		else if constexpr (std::is_same_v<T, std::monostate>) {
-			std::cout << "Why are we sending mono state into a number parser?";
+		// This will never be visited
+		else{
+			std::cout << "Parsed Identifier inside a number parser";
 			return nullptr;
 		}
 		}, curTok.getValue());
@@ -62,6 +55,68 @@ std::unique_ptr<Expr> Parser::parseDoubleExpression()
 	auto result = std::make_unique<doubleExpr>(val);
 	advance();
 	return std::move(result);
+}
+
+std::unique_ptr<Expr> Parser::parseBlock()
+{
+	if(getToken().getType() != tok_left_brace) {
+		std::cout << "Expected '{' to start block";
+		return nullptr;
+	}
+	advance();
+	std::vector<std::unique_ptr<Expr>> expressions;
+	while (getToken().getType() != tok_right_brace) {
+		auto expr = parseExpression();
+		if (!expr) {
+			std::cout << "Failed to parse expression in block";
+			return nullptr;
+		}
+		expressions.push_back(std::move(expr));
+	}
+	advance(); // eat }
+	std::unique_ptr<Expr> unique_ptr = std::make_unique<BlockExpr>(std::move(expressions));
+	return std::move(unique_ptr);
+}
+
+std::unique_ptr<Expr> Parser::parseIf()
+{
+	advance(); // eat if
+	if (getToken().getType() != tok_left_paren) {
+		std::cout << "Expected '(' after if";
+		return nullptr;
+	}
+	advance(); // eat (
+	auto condition = parseExpression();
+	if (!condition) {
+		std::cout << "Failed To parse condition expression";
+	}
+	if (getToken().getType() != tok_right_paren) {
+		std::cout << "Expected ')' after if condition";
+		return nullptr;
+	}
+	advance(); // eat )
+	auto thenBlock = parseBlock();
+	if(!thenBlock) {
+		std::cout << "Syntax Error when parsing the IF block";
+		return nullptr;
+	}
+	if (getToken().getType() == tok_else) {
+		advance(); // eat else
+		if(getToken().getType() == tok_if) {
+			auto nestedIf = parseIf();
+			if(!nestedIf) {
+				std::cout << "Syntax Error when parsing the nested IF block";
+				return nullptr;
+			}
+		}
+		auto elseBlock = parseBlock();
+		if (!elseBlock) {
+			std::cout << "Syntax Error when parsing the ELSE block";
+			return nullptr;
+		}
+		return std::make_unique<IfExpr>(std::move(condition), std::move(thenBlock), std::move(elseBlock));
+	}
+	return std::make_unique<IfExpr>(std::move(condition), std::move(thenBlock), nullptr);
 }
 
 std::unique_ptr<Expr> Parser::parseIdentifier()
@@ -115,8 +170,10 @@ std::unique_ptr<Expr> Parser::parseGroupingExpression()
 	if (!expression)
 		return nullptr;
 	const Token& curTok = getToken();
-	if (curTok.getType() != tok_right_paren)
+	if (curTok.getType() != tok_right_paren) {
+		std::cout << "Expected ')' after expression";
 		return nullptr;
+	}
 	advance(); // eat ).
 	return expression;
 
@@ -131,6 +188,8 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return number();
 	case tok_left_paren:
 		return parseGroupingExpression();
+	case tok_if:
+		return parseIf();
 	case tok_eof:
 	default:
 		std::cout << "Unknown token when expecting an expression";
