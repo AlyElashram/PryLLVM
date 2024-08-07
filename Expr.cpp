@@ -30,6 +30,18 @@ Value* BinaryExpr::codegen() {
         return Compiler::getInstance().emitMultiplication(L, R);
     case tok_slash:
         return Compiler::getInstance().emitDivision(L, R);
+    case tok_less:
+	    return Compiler::getInstance().emitLessThan(L, R);
+    case tok_greater:
+        return Compiler::getInstance().emitGreaterThan(L, R);
+    case tok_less_equal:
+        return Compiler::getInstance().emitLessThanOrEqual(L, R);
+    case tok_greater_equal:
+        return Compiler::getInstance().emitGreaterThanOrEqual(L, R);
+    case tok_equal_equal:
+		return Compiler::getInstance().emitEquality(L, R);
+    case tok_bang_equal:
+		return Compiler::getInstance().emitInequality(L, R);
     default:
         std::cout << "invalid binary operator";
         return nullptr;
