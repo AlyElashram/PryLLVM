@@ -9,6 +9,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "Expr.hpp"
 #include <map>
 using namespace llvm;
 class Compiler {
@@ -48,6 +49,7 @@ public:
     Value* emitGreaterThanOrEqual(Value* Left, Value* Right);
     Value* emitEquality(Value* Left, Value* Right);
     Value* emitInequality(Value* Left, Value* Right);
+    Value* emitIfThenElse(Value* condition, std::unique_ptr<Expr> then, std::unique_ptr<Expr> Else);
     Function* getFunction(std::string name) {
         return TheModule->getFunction(name);
     };
@@ -60,7 +62,7 @@ public:
     };
     Value* emitCall(Function* F, std::vector<Value*> args , std::string name);
     Function* emitPrototype(const std::string& name, std::vector<std::string> args);
-    Function* emitFunction(Function* TheFunction, Value* retVal);
+    Function* emitFunction(Function* TheFunction, std::unique_ptr<Expr> Body);
     void printIR() {
 		TheModule->print(errs(), nullptr);
 	}

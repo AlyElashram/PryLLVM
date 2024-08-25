@@ -1,4 +1,5 @@
 #include "Compiler.hpp"
+#include "Expr.hpp"
 using namespace llvm;
 
 Value* Compiler::emitInt(int value) {
@@ -47,6 +48,60 @@ Value* Compiler::emitInequality(Value* Left, Value* Right)
 {
 	return Builder->CreateFCmpUNE(Left, Right, "cmptmp");
 }
+Value* Compiler::emitIfThenElse(Value* condition,std::unique_ptr<Expr> then , std::unique_ptr<Expr> Else) {
+
+	condition = Builder->CreateFCmpONE(condition, emitDouble(0.0), "ifcond");
+	Function* TheFunction = Builder->GetInsertBlock()->getParent();
+
+	// Create blocks for the then and else cases.  Insert the 'then' block at the
+	// end of the function.
+
+	// Implicitly adds the then block into the end of the function
+	BasicBlock* ThenBB = BasicBlock::Create(*TheContext, "then", TheFunction);
+	
+	// Free Floating blocks for now , we don't want to insert them until we finish the if to handle nesting
+	BasicBlock* ElseBB = BasicBlock::Create(*TheContext, "else");
+	BasicBlock* MergeBB = BasicBlock::Create(*TheContext, "ifcont");
+	
+	// Create the conditional branch instruction.
+	Builder->CreateCondBr(condition, ThenBB, ElseBB);
+	Builder->SetInsertPoint(ThenBB);
+	Value* ThenVal = then->codegen();
+
+	if (!ThenVal) {
+		std::cout << "Failed to generate a value for the then block";
+		return nullptr;
+	}
+	
+	// Create an unconditional branch to terminate the 'then' block
+	Builder->CreateBr(MergeBB);
+
+	// Reset the ThenBB to the current block (Recursive if calls)
+	// we update this block to later insert it into the phi node
+	ThenBB = Builder->GetInsertBlock();
+	
+	// Emit else block.
+	TheFunction->insert(TheFunction->end(), ElseBB);
+	Builder->SetInsertPoint(ElseBB);
+	Value* ElseVal = Else->codegen();
+	if (!ElseVal) {
+		std::cout << "Failed to generate a value for the else block";
+		return nullptr;
+	}
+	// Again, create an unconditional branch to the merge block
+	Builder->CreateBr(MergeBB);
+	// codegen of 'Else' can change the current block, update ElseBB for the phi node.
+	ElseBB = Builder->GetInsertBlock();
+	// Emit merge block.
+	TheFunction->insert(TheFunction->end(), MergeBB);
+	Builder->SetInsertPoint(MergeBB);
+	PHINode* PN =
+		Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "iftmp");
+
+	PN->addIncoming(ThenVal, ThenBB);
+	PN->addIncoming(ElseVal, ElseBB);
+	return PN;
+}
 Value* Compiler::emitCall(llvm::Function* F, std::vector<Value*> Args, std::string name) {
 	return Builder->CreateCall(F, Args, name);
 }
@@ -63,7 +118,7 @@ Function* Compiler::emitPrototype(const std::string& name, std::vector<std::stri
 		Arg.setName(args[Idx++]);
 	return F;
 }
-Function* Compiler::emitFunction(Function* TheFunction, Value* retVal)
+Function* Compiler::emitFunction(Function* TheFunction, std::unique_ptr<Expr> Body)
 {
 	// Create a new basic block to start insertion into.
 	BasicBlock* BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
@@ -75,6 +130,11 @@ Function* Compiler::emitFunction(Function* TheFunction, Value* retVal)
 		NamedValues[std::string(Arg.getName())] = &Arg;
 
 	// Finish off the function.
+	Value* retVal = Body->codegen();
+	if(!retVal) {
+		std::cout << "Failed to generate a value for the function";
+		return nullptr;
+	}
 	Builder->CreateRet(retVal);
 
 	// Validate the generated code, checking for consistency.
