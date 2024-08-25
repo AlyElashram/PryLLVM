@@ -62,13 +62,13 @@ class IfExpr : public Expr {
 	std::unique_ptr<Expr> Cond, Then, Else;
 	public:
 		IfExpr(std::unique_ptr<Expr> Cond, std::unique_ptr<Expr> Then, std::unique_ptr<Expr> Else) : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {};
-		llvm::Value* codegen() { return nullptr; };
+		llvm::Value* codegen() override;
 };
 class BlockExpr : public Expr {
 	std::vector<std::unique_ptr<Expr>> mExprs;
 public:
 	BlockExpr(std::vector<std::unique_ptr<Expr>> Exprs) : mExprs(std::move(Exprs)) {};
-	llvm::Value* codegen() { return nullptr; };
+	llvm::Value* codegen() override;
 };
 class CallExpr : public Expr {
 	std::string Callee;
