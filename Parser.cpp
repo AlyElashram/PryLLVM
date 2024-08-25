@@ -67,6 +67,9 @@ std::unique_ptr<Expr> Parser::parseBlock()
 	std::vector<std::unique_ptr<Expr>> expressions;
 	while (getToken().getType() != tok_right_brace) {
 		auto expr = parseExpression();
+		if(getToken().getType() == tok_semicolon) {
+			advance();
+		}
 		if (!expr) {
 			std::cout << "Failed to parse expression in block";
 			return nullptr;
@@ -100,15 +103,16 @@ std::unique_ptr<Expr> Parser::parseIf()
 		std::cout << "Syntax Error when parsing the IF block";
 		return nullptr;
 	}
+	// TODO: Handle Nested Ifs inside the else block and then return the value
 	if (getToken().getType() == tok_else) {
 		advance(); // eat else
-		if(getToken().getType() == tok_if) {
+		/*if(getToken().getType() == tok_if) {
 			auto nestedIf = parseIf();
 			if(!nestedIf) {
 				std::cout << "Syntax Error when parsing the nested IF block";
 				return nullptr;
 			}
-		}
+		}*/
 		auto elseBlock = parseBlock();
 		if (!elseBlock) {
 			std::cout << "Syntax Error when parsing the ELSE block";
@@ -190,6 +194,8 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseGroupingExpression();
 	case tok_if:
 		return parseIf();
+	case tok_left_brace:
+		return parseBlock();
 	case tok_eof:
 	default:
 		std::cout << "Unknown token when expecting an expression";
@@ -265,6 +271,7 @@ std::unique_ptr<PrototypeAST> Parser::parsePrototype()
 		std::cout << "Expected '(' in prototype";
 		return nullptr;
 	}
+	advance();  // eat '('.
 
 	// Read the list of argument names.
 	std::vector<std::string> ArgNames;
