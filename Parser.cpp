@@ -284,6 +284,8 @@ std::unique_ptr<FunctionAST> Parser::parseDefinition()
 		std::cout << "Expected '}' to close function definition";
 		return nullptr;
 	}
+	advance(); // Eat the right brace }
+
 	return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 }
 
