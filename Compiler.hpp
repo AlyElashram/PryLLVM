@@ -49,7 +49,7 @@ public:
     Value* emitGreaterThanOrEqual(Value* Left, Value* Right);
     Value* emitEquality(Value* Left, Value* Right);
     Value* emitInequality(Value* Left, Value* Right);
-    Value* emitIfThenElse(Value* condition, std::unique_ptr<Expr> then, std::unique_ptr<Expr> Else);
+    Value* emitIfThenElse(std::unique_ptr<Expr> condition, std::unique_ptr<Expr> then, std::unique_ptr<Expr> Else);
     Function* getFunction(std::string name) {
         return TheModule->getFunction(name);
     };
