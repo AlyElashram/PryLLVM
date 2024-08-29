@@ -48,9 +48,12 @@ Value* Compiler::emitInequality(Value* Left, Value* Right)
 {
 	return Builder->CreateFCmpUNE(Left, Right, "cmptmp");
 }
-Value* Compiler::emitIfThenElse(Value* condition,std::unique_ptr<Expr> then , std::unique_ptr<Expr> Else) {
+Value* Compiler::emitIfThenElse(std::unique_ptr<Expr> condition,std::unique_ptr<Expr> then , std::unique_ptr<Expr> Else) {
 
-	condition = Builder->CreateFCmpONE(condition, emitDouble(0.0), "ifcond");
+	Value* condV = condition->codegen();
+	if(!condV) {
+		errs() << "Failed to generate condition";
+	}
 	Function* TheFunction = Builder->GetInsertBlock()->getParent();
 
 	// Create blocks for the then and else cases.  Insert the 'then' block at the
@@ -64,7 +67,7 @@ Value* Compiler::emitIfThenElse(Value* condition,std::unique_ptr<Expr> then , st
 	BasicBlock* MergeBB = BasicBlock::Create(*TheContext, "ifcont");
 	
 	// Create the conditional branch instruction.
-	Builder->CreateCondBr(condition, ThenBB, ElseBB);
+	Builder->CreateCondBr(condV, ThenBB, ElseBB);
 	Builder->SetInsertPoint(ThenBB);
 	Value* ThenVal = then->codegen();
 
