@@ -90,30 +90,10 @@ Function* FunctionAST::codegen() {
 
 llvm::Value* IfExpr::codegen()
 {
-    Value* ConditionValue = Cond->codegen();
-    if (!ConditionValue){
-        std::cout << "Failed to generate condition";
-    return nullptr;
-    }
-    // Takes in the Condtion Value* and builds the blocks
-    // I'll feed it the then and else blocks for now but we should 
-    // take the block after emitting the condition branch and then code gen here 
-    // for seperation of concerns
-    // Meaning this class is for code gen the other is for emitting instructions
-    Value* PhiNode = Compiler::getInstance().emitIfThenElse(ConditionValue,std::move(Then) ,std::move(Else));
+    Value* PhiNode = Compiler::getInstance().emitIfThenElse(std::move(Cond),std::move(Then) ,std::move(Else));
     if (!PhiNode) {
         std::cout << "Failed to generate condition";
         return nullptr;
     }
     return PhiNode;
-}
-
-llvm::Value* BlockExpr::codegen()
-{
-    Value* val = nullptr;
-    for (int i = 0; i < mExprs.size(); i++) {
-		std::cout << "Generating block expression mExprs[ " << i <<" ]" << std::endl;
-        val = mExprs[i]->codegen();
-	}
-    return val;
 }
