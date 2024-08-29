@@ -64,6 +64,12 @@ public:
     Function* emitPrototype(const std::string& name, std::vector<std::string> args);
     Function* emitFunction(Function* TheFunction, std::unique_ptr<Expr> Body);
     void printIR() {
-		TheModule->print(errs(), nullptr);
-	}
+    	bool invalid = verifyModule(*TheModule,&errs());
+    	if(invalid) {
+    		errs() << "Encountered invalid Module";
+    	}else {
+    		errs() << "Valid Module Check ";
+    		TheModule->print(errs(), nullptr);
+    	}
+    	}
 };
