@@ -57,30 +57,6 @@ std::unique_ptr<Expr> Parser::parseDoubleExpression()
 	return std::move(result);
 }
 
-std::unique_ptr<Expr> Parser::parseBlock()
-{
-	if(getToken().getType() != tok_left_brace) {
-		std::cout << "Expected '{' to start block";
-		return nullptr;
-	}
-	advance();
-	std::vector<std::unique_ptr<Expr>> expressions;
-	while (getToken().getType() != tok_right_brace) {
-		auto expr = parseExpression();
-		if(getToken().getType() == tok_semicolon) {
-			advance();
-		}
-		if (!expr) {
-			std::cout << "Failed to parse expression in block";
-			return nullptr;
-		}
-		expressions.push_back(std::move(expr));
-	}
-	advance(); // eat }
-	std::unique_ptr<Expr> unique_ptr = std::make_unique<BlockExpr>(std::move(expressions));
-	return std::move(unique_ptr);
-}
-
 std::unique_ptr<Expr> Parser::parseIf()
 {
 	advance(); // eat if
@@ -98,7 +74,7 @@ std::unique_ptr<Expr> Parser::parseIf()
 		return nullptr;
 	}
 	advance(); // eat )
-	auto thenBlock = parseBlock();
+	auto thenBlock = parseExpression();
 	if(!thenBlock) {
 		std::cout << "Syntax Error when parsing the IF block";
 		return nullptr;
@@ -113,7 +89,7 @@ std::unique_ptr<Expr> Parser::parseIf()
 				return nullptr;
 			}
 		}*/
-		auto elseBlock = parseBlock();
+		auto elseBlock = parseExpression();
 		if (!elseBlock) {
 			std::cout << "Syntax Error when parsing the ELSE block";
 			return nullptr;
@@ -194,8 +170,6 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseGroupingExpression();
 	case tok_if:
 		return parseIf();
-	case tok_left_brace:
-		return parseBlock();
 	case tok_eof:
 	default:
 		std::cout << "Unknown token when expecting an expression";

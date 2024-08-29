@@ -20,7 +20,6 @@ public :
 	std::unique_ptr<Expr> parseUnaryExpression();
 	std::unique_ptr<Expr> parseIntExpression();
 	std::unique_ptr<Expr> parseDoubleExpression();
-	std::unique_ptr<Expr> parseBlock();
 	std::unique_ptr<Expr> parseIf();
 
 	std::unique_ptr<Expr> number();
