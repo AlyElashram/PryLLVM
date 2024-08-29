@@ -141,8 +141,10 @@ Function* Compiler::emitFunction(Function* TheFunction, std::unique_ptr<Expr> Bo
 	Builder->CreateRet(retVal);
 
 	// Validate the generated code, checking for consistency.
-	verifyFunction(*TheFunction);
-
+	errs() << "Running Function Verifier " << "\n";
+	if(verifyFunction(*TheFunction, &errs())) {
+		errs() << "Found errors in function";
+	}
 	return TheFunction;
 
 }
