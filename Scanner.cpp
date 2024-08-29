@@ -25,6 +25,7 @@ void Scanner::readFile(const std::string& path) {
 		sourceCode.push_back('\n');
 	}
 	Scanner::setSourceCode(sourceCode);
+	fileStream.close();
 }
 void Scanner::advance() {
 	index++;
