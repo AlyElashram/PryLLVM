@@ -99,6 +99,69 @@ std::unique_ptr<Expr> Parser::parseIf()
 	return std::make_unique<IfExpr>(std::move(condition), std::move(thenBlock), nullptr);
 }
 
+std::unique_ptr<Expr> Parser::parseForExpr() {
+	advance();  // eat the for.
+
+	if (getToken().getType() != tok_identifier){
+		errs() << "Expected an identifier to instanciate for loop";
+		return nullptr;
+	}
+	std::string IdName = std::get<std::string>(getToken().getValue());
+	advance();  // eat identifier.
+
+	if (getToken().getType() != tok_equal){
+		errs() << "expected '=' after for";
+	return nullptr;
+	}
+	advance();  // eat '='.
+
+
+		auto Start = parseExpression();
+		if (!Start)
+			return nullptr;
+		if (getToken().getType() != tok_semicolon) {
+			errs() << "expected ',' after for start value";
+			return nullptr;
+		}
+		advance();
+
+		auto End = parseExpression();
+		if (!End)
+			return nullptr;
+
+		// The step value is optional.
+		std::unique_ptr<Expr> Step;
+		if (getToken().getType() == tok_semicolon) {
+			advance();
+			Step = parseExpression();
+			if (!Step) {
+				errs() << "Failed To Parse Step Expression";
+				return nullptr;
+			}
+		}
+
+		if (getToken().getType() != tok_left_brace) {
+			errs() << "expected { after for";
+			return nullptr;
+		}
+
+		advance();  // eat '{'.
+
+		auto Body = parseExpression();
+		if (!Body) {
+			errs() << "Failed to parse For Body";
+			return nullptr;
+		}
+		if(getToken().getType() != tok_right_brace) {
+			errs() << "expected } after for Body";
+			return nullptr;
+		}
+		advance();
+		return std::make_unique<ForExpr>(IdName, std::move(Start),
+											 std::move(End), std::move(Step),
+											 std::move(Body));
+}
+
 std::unique_ptr<Expr> Parser::parseIdentifier()
 {
 	const Token& curTok = getToken();
@@ -146,7 +209,7 @@ std::unique_ptr<Expr> Parser::parseIdentifier()
 
 std::unique_ptr<Expr> Parser::parseGroupingExpression()
 {
-	// eat '(' 
+	// eat '('
 	advance();
 	auto expression = parseExpression();
 	if (!expression)
@@ -230,6 +293,9 @@ std::unique_ptr<Expr> Parser::parseExpression() {
 	if (auto val = parseBinOpRHS(0, std::move(LHS))) {
 		return val;
 	}
+	errs() << "Failed to parse Expression";
+	return nullptr;
+
 }
 /// prototype
 ///   ::= id '(' id* ')'
