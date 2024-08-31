@@ -74,6 +74,18 @@ public:
 		: Callee(Callee), Args(std::move(Args)) {};
 	llvm::Value* codegen() override;
 };
+class ForExpr : public Expr {
+	std::string VarName;
+	std::unique_ptr<Expr> Start, End, Step, Body;
+
+public:
+	ForExpr(const std::string &VarName, std::unique_ptr<Expr> Start,
+			   std::unique_ptr<Expr> End, std::unique_ptr<Expr> Step,
+			   std::unique_ptr<Expr> Body)
+	  : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
+		Step(std::move(Step)), Body(std::move(Body)) {}
+	llvm::Value *codegen() {return nullptr;};
+};
 class PrototypeAST {
 	std::string Name;
 	std::vector<std::string> Args;
