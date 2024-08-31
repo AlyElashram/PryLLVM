@@ -235,6 +235,8 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseGroupingExpression();
 	case tok_if:
 		return parseIf();
+	case tok_for:
+		return parseForExpr();
 	case tok_eof:
 	default:
 		std::cout << "Unknown token when expecting an expression";

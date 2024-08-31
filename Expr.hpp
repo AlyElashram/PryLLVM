@@ -84,7 +84,7 @@ public:
 			   std::unique_ptr<Expr> Body)
 	  : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
 		Step(std::move(Step)), Body(std::move(Body)) {}
-	llvm::Value *codegen() {return nullptr;};
+	llvm::Value *codegen() override;
 };
 class PrototypeAST {
 	std::string Name;

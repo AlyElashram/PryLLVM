@@ -67,6 +67,12 @@ Value* CallExpr::codegen() {
     }
     return Compiler::getInstance().emitCall(CalleeF, ArgsV, "calltmp");
 }
+
+llvm::Value* ForExpr::codegen() {
+
+    return  Compiler::getInstance().emitForLoop(VarName,std::move(Start),std::move(End),std::move(Step),std::move(Body));
+}
+
 Function* PrototypeAST::codegen() {
     return Compiler::getInstance().emitPrototype(Name, Args);
 }

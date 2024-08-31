@@ -50,6 +50,8 @@ public:
     Value* emitEquality(Value* Left, Value* Right);
     Value* emitInequality(Value* Left, Value* Right);
     Value* emitIfThenElse(std::unique_ptr<Expr> condition, std::unique_ptr<Expr> then, std::unique_ptr<Expr> Else);
+	Constant *emitForLoop(const std::string &varName, std::unique_ptr<Expr> Start, std::unique_ptr<Expr> End,
+	                   std::unique_ptr<Expr> Step, std::unique_ptr<Expr> Body);
     Function* getFunction(std::string name) {
         return TheModule->getFunction(name);
     };
