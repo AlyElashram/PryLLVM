@@ -114,9 +114,11 @@ std::unique_ptr<Expr> Parser::parseIdentifier()
 	// advance to eat the opening bracket (
 	advance();
 	std::vector<std::unique_ptr<Expr>> Args;
-	while (true) {
+	while (getToken().getType() != tok_right_paren) {
+		//TODO : This will break the code eventually when you forget the closing parenthesis
 		// Arguments can be expressions
 		if (auto Arg = parseExpression()) {
+			//TODO: Add poison node here if there's an error else return a null ptr
 			// if Parse Expression doesn't return a null ptr
 			Args.push_back(std::move(Arg));
 		}
