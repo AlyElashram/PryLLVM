@@ -21,7 +21,7 @@ public :
 	std::unique_ptr<Expr> parseIntExpression();
 	std::unique_ptr<Expr> parseDoubleExpression();
 	std::unique_ptr<Expr> parseIf();
-
+	std::unique_ptr<Expr> parseForExpr();
 	std::unique_ptr<Expr> number();
 	std::unique_ptr<Expr> parseIdentifier();
 	std::unique_ptr<Expr> parseGroupingExpression();
