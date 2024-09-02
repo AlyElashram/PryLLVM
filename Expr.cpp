@@ -94,6 +94,18 @@ Function* FunctionAST::codegen() {
     
 }
 
+llvm::Value * Block::codegen() {
+    Value* finalVal = nullptr;
+    for(auto const& expr : expressions) {
+        finalVal = expr->codegen();
+        if(!finalVal) {
+           errs() << "Failed To generate expression in a block";
+            return nullptr;
+        }
+    }
+    return finalVal;
+}
+
 llvm::Value* IfExpr::codegen()
 {
     Value* PhiNode = Compiler::getInstance().emitIfThenElse(std::move(Cond),std::move(Then) ,std::move(Else));
