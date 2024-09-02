@@ -57,6 +57,32 @@ std::unique_ptr<Expr> Parser::parseDoubleExpression()
 	return std::move(result);
 }
 
+std::unique_ptr<Expr> Parser::parseBlock() {
+	advance(); //Eat Left Curly Brace
+	std::vector<std::unique_ptr<Expr>> exprs = {};
+
+	// Keeps parsing which will definetly ruin the results after right if you forget the brace
+	// let's check after if we reached the end and the final token was not a right brace
+	// if we didn't find a right brace let's store the beginning line here and report an error on this line
+	int begginingLineOfBlock = getToken().getLine();
+	while(!isAtEnd() && getToken().getType() != tok_right_brace) {
+		auto expr = parseExpression();
+
+		// DO NOT CONSUME A SEMI COLON HERE WE DO NOT WANT SEMICOLONS IN THIS LANGUAGE AFTER EACH EXPRESSION
+		if(!expr) {
+			errs() << "Failed to parse an expression inside the block";
+			return nullptr;
+		}
+		// should I call move here?
+		exprs.push_back(std::move(expr));
+	}
+	if(getToken().getType() != tok_right_brace) {
+		errs() << "Unterminated Block beginning at line : " << begginingLineOfBlock ;
+	}
+	advance(); // Consume Closing brace;
+	return std::make_unique<Block>(std::move(exprs));
+}
+
 std::unique_ptr<Expr> Parser::parseIf()
 {
 	advance(); // eat if
@@ -74,7 +100,7 @@ std::unique_ptr<Expr> Parser::parseIf()
 		return nullptr;
 	}
 	advance(); // eat )
-	auto thenBlock = parseExpression();
+	auto thenBlock = parseBlock();
 	if(!thenBlock) {
 		std::cout << "Syntax Error when parsing the IF block";
 		return nullptr;
@@ -89,7 +115,7 @@ std::unique_ptr<Expr> Parser::parseIf()
 				return nullptr;
 			}
 		}*/
-		auto elseBlock = parseExpression();
+		auto elseBlock = parseBlock();
 		if (!elseBlock) {
 			std::cout << "Syntax Error when parsing the ELSE block";
 			return nullptr;
@@ -338,24 +364,10 @@ std::unique_ptr<FunctionAST> Parser::parseDefinition()
 	advance();  // eat def.
 	auto Proto = parsePrototype();
 	if (!Proto) return nullptr;
-	//Eat Opening Curly Brace
-	if (getToken().getType() != tok_left_brace) {
-		std::cout << "Expected '{' in function definition";
-		return nullptr;
-	}
-	advance();
-	auto E = parseExpression();
+	auto E = parseBlock();
 	if (!E) {
 		return nullptr;
 	}
-
-	//Eat Closing Curly Brace
-	if (getToken().getType() != tok_right_brace) {
-		std::cout << "Expected '}' to close function definition";
-		return nullptr;
-	}
-	advance(); // Eat the right brace }
-
 	return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 }
 
