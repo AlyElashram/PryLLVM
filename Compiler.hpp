@@ -1,3 +1,5 @@
+#ifndef COMPILER_HPP
+#define COMPILER_HPP
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -8,6 +10,11 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
+#include <llvm/IR/Module.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
+#include <memory>
 #include "llvm/IR/Verifier.h"
 #include "Expr.hpp"
 #include <map>
@@ -32,7 +39,11 @@ public:
         TheContext.release();
         Builder.release();
         TheModule.release();
-    };
+    }
+
+	Value * emitNegation(Value * value);
+
+	Value * emitAbsolute(Value * value);;
     // Delete copy constructor and assignment operator
     Compiler(const Compiler&) = delete;
     Compiler& operator=(const Compiler&) = delete;
@@ -72,6 +83,16 @@ public:
     	}else {
     		errs() << "Valid Module Check ";
     		TheModule->print(errs(), nullptr);
+    		std::error_code EC;
+    		raw_fd_ostream out("/home/aly/Desktop/LLVMPRY/output.ll", EC, sys::fs::OF_Text);
+
+    		// Check if file opening was successful
+    		if (EC) {
+    			errs() << "Error opening file: " << EC.message() << "\n";
+    		}
+    		// Print the module to the file
+    		TheModule->print(out, nullptr);
     	}
     	}
 };
+#endif
