@@ -14,7 +14,16 @@
 using namespace llvm;
 std::unique_ptr<Expr> Parser::parseUnaryExpression()
 {
-	return std::unique_ptr<Expr>();
+	//TODO: Refactor this into a centralized function in the parser that returns a boolean
+	// Function should check if a passed Token& is in one of the binary operators
+	if(getToken().getType()!=tok_minus) {
+		return parsePrimary();
+	}
+	auto Token = getToken();
+	advance();
+	auto operand = parseUnaryExpression();
+
+	return std::make_unique<UnaryExpr>(Token,std::move(operand));
 }
 std::unique_ptr<Expr> Parser::number() {
 	const Token& curTok = getToken();
@@ -299,7 +308,7 @@ std::unique_ptr<Expr> Parser::parseBinOpRHS(int ExprPrec,
 		}
 
 		// Parse the primary expression after the binary operator.
-		auto RHS = parsePrimary();
+		auto RHS = parseUnaryExpression();
 		if (!RHS)
 			return nullptr;
 		int NextPrec = GetTokPrecedence();
@@ -314,7 +323,7 @@ std::unique_ptr<Expr> Parser::parseBinOpRHS(int ExprPrec,
 	}
 }
 std::unique_ptr<Expr> Parser::parseExpression() {
-	auto LHS = parsePrimary();
+	auto LHS = parseUnaryExpression();
 	if (!LHS)
 		return nullptr;
 
