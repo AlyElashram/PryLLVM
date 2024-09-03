@@ -2,6 +2,10 @@
 #include "Expr.hpp"
 using namespace llvm;
 
+Value * Compiler::emitNegation(Value *value) {
+	return Builder->CreateFNeg(value);
+}
+
 Value* Compiler::emitInt(int value) {
 	return ConstantFP::get(*TheContext, APFloat(value + 0.0));
 }
