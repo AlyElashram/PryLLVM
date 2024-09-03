@@ -94,6 +94,15 @@ Function* FunctionAST::codegen() {
     
 }
 
+llvm::Value * UnaryExpr::codegen() {
+    //TODO:Add other tokenTypes here when we start supporting other data types that have other operators
+    auto L = LHS->codegen();
+    switch(op.getType()) {
+        case tok_minus:
+            return Compiler::getInstance().emitNegation(L);
+    }
+}
+
 llvm::Value * Block::codegen() {
     Value* finalVal = nullptr;
     for(auto const& expr : expressions) {

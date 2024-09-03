@@ -56,7 +56,7 @@ class UnaryExpr : public Expr {
 	std::unique_ptr<Expr> LHS;
 public:
 	UnaryExpr(Token op, std::unique_ptr<Expr> LHS) : op(op), LHS(std::move(LHS)) {};
-	llvm::Value* codegen() override { return nullptr; };
+	llvm::Value* codegen() override;
 };
 class Block : public Expr {
 	std::vector<std::unique_ptr<Expr>> expressions;
