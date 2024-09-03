@@ -28,4 +28,4 @@ public:
 	void printVariantType(const std::variant<std::monostate, int, double, std::string>& var);
 	friend std::ostream& operator<< (std::ostream& os, Token& obj);
 };
-#endif // !token
+#endif
