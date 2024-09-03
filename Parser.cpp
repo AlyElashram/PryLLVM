@@ -15,7 +15,7 @@ using namespace llvm;
 std::unique_ptr<Expr> Parser::parseUnaryExpression()
 {
 	//TODO: Refactor this into a centralized function in the parser that returns a boolean
-	// Function should check if a passed Token& is in one of the binary operators
+	// Function should check if a passed Token& is in one of the unary operators
 	if(getToken().getType()!=tok_minus) {
 		return parsePrimary();
 	}
@@ -274,7 +274,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseForExpr();
 	case tok_eof:
 	default:
-		std::cout << "Unknown token when expecting an expression";
+		errs() << "Unknown token when expecting an expression. Token : " << curTok.getLexeme() << " On Line : " + curTok.getLine();;
 		return nullptr;
 	};
 
