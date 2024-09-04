@@ -16,13 +16,13 @@ Value *VariableExpr::codegen() {
   return Compiler::getInstance().emitLoad(V, Name);
 }
 llvm::Value *VarExprAST::codegen() {
-    return Compiler::getInstance().emitVar(std::move(VarNames),std::move(Body));
+    return Compiler::getInstance().emitVar(std::move(VarNames));
 
 }
 Value * BinaryExpr::codegen() {
     // Special case '=' because we don't want to emit the LHS as an expression.
     if (op == tok_equal) {
-        VariableExpr *LHSE = static_cast<VariableExpr*>(LHS.get());
+        auto LHSE = static_cast<VariableExpr*>(LHS.get());
 
         if (!LHSE) {
             errs() << "destination of '=' must be a variable.";

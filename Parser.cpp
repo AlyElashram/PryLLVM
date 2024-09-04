@@ -300,17 +300,7 @@ std::unique_ptr<Expr> Parser::ParseVarExpr() {
       return nullptr;
     }
   }
-	if (getToken().getType() != tok_in) {
-		errs() << "expected 'in' after for";
-		return nullptr;
-	}
-	advance(); // eat 'in'.
-
-	auto Body = parseExpression();
-	if (!Body)
-		return nullptr;
-
-	return std::make_unique<VarExprAST>(std::move(VarNames), std::move(Body));
+	return std::make_unique<VarExprAST>(std::move(VarNames));
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {

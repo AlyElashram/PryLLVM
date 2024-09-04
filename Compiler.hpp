@@ -44,10 +44,7 @@ public:
 	Value *emitNegation(Value *value);
 	void StoreValueInVariable(Value *val, Value *value);
 	Value * emitVar(const std::vector<std::pair<std::string, std::unique_ptr<Expr>>>
-                    &VarNames,
-                std::unique_ptr<Expr> body);
-
-        ;
+                    &VarNames);
     // Delete copy constructor and assignment operator
     Compiler(const Compiler&) = delete;
     Compiler& operator=(const Compiler&) = delete;

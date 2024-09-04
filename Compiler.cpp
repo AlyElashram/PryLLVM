@@ -9,7 +9,7 @@ void Compiler::StoreValueInVariable(Value *val, Value *variable) {
   Builder->CreateStore(val, variable);
 }
 Value *Compiler::emitVar(
-    const std::vector<std::pair<std::string, std::unique_ptr<Expr>>> &VarNames, std::unique_ptr<Expr> body) {
+    const std::vector<std::pair<std::string, std::unique_ptr<Expr>>> &VarNames) {
 	std::vector<AllocaInst *> OldBindings;
 
 	Function *TheFunction = Builder->GetInsertBlock()->getParent();
@@ -30,24 +30,9 @@ Value *Compiler::emitVar(
 		} else { // If not specified, use 0.0.
 			InitVal = ConstantFP::get(*TheContext, APFloat(0.0));
 		}
-
 		AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
 		Builder->CreateStore(InitVal, Alloca);
-
-		// Remember the old variable binding so that we can restore the binding when
-		// we unrecurse.
-		OldBindings.push_back(NamedValues[VarName]);
-
-		// Remember this binding.
-		NamedValues[VarName] = Alloca;
-			// Codegen the body, now that all vars are in scope.
-			Value *BodyVal = body->codegen();
-			if (!BodyVal)
-				return nullptr;
-		// Pop all our variables from scope.
-		for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
-			NamedValues[VarNames[i].first] = OldBindings[i];
-		return BodyVal;
+		return Alloca;
 	}
 }
 

@@ -39,14 +39,13 @@ public:
 // when calling Var ident = ""
 /// VarExprAST - Expression class for var/in
 class VarExprAST : public Expr {
+	// Var Names and their initializer expression
 	std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames;
-	std::unique_ptr<Expr> Body;
 
 public:
 	VarExprAST(
-	    std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames,
-	    std::unique_ptr<Expr> Body)
-	    : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
+	    std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames)
+	    : VarNames(std::move(VarNames)) {}
 
 	llvm::Value *codegen() override;
 };
