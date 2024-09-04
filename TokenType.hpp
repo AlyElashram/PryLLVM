@@ -52,6 +52,7 @@ enum TokenType : int {
 	// Commands
 	tok_def = 39,
 	tok_extern = 40,
+	tok_in = 41
 };
 
 #endif
