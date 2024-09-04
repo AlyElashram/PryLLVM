@@ -27,12 +27,31 @@ public:
 	llvm::Value* codegen() override;
 };
 
+// When calling a variable by name
 class VariableExpr : public Expr {
 	std::string Name;
 public:
 	VariableExpr(const std::string& Name) : Name(Name) {}
+	const std::string& getName() {return Name;}
 	llvm::Value* codegen() override;
 };
+
+// when calling Var ident = ""
+/// VarExprAST - Expression class for var/in
+class VarExprAST : public Expr {
+	std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames;
+	std::unique_ptr<Expr> Body;
+
+public:
+	VarExprAST(
+	    std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames,
+	    std::unique_ptr<Expr> Body)
+	    : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
+
+	llvm::Value *codegen() override;
+};
+
+
 class GroupingExpr : public Expr {
 	std::unique_ptr<Expr> LHS;
 public:

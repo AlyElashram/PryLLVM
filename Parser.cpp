@@ -242,24 +242,79 @@ std::unique_ptr<Expr> Parser::parseIdentifier()
 	return std::make_unique<CallExpr>(val, std::move(Args));
 }
 
-std::unique_ptr<Expr> Parser::parseGroupingExpression()
-{
-	// eat '('
-	advance();
-	auto expression = parseExpression();
-	if (!expression)
-		return nullptr;
-	const Token& curTok = getToken();
-	if (curTok.getType() != tok_right_paren) {
-		std::cout << "Expected ')' after expression";
+std::unique_ptr<Expr> Parser::parseGroupingExpression() {
+  // eat '('
+  advance();
+  auto expression = parseExpression();
+  if (!expression)
+    return nullptr;
+  const Token &curTok = getToken();
+  if (curTok.getType() != tok_right_paren) {
+    std::cout << "Expected ')' after expression";
+    return nullptr;
+  }
+  advance(); // eat ).
+  return expression;
+}
+
+/// varexpr ::= 'var' identifier ('=' expression)?
+//                    (',' identifier ('=' expression)?)* 'in' expression
+std::unique_ptr<Expr> Parser::ParseVarExpr() {
+  advance(); // eat the var.
+
+  std::vector<std::pair<std::string, std::unique_ptr<Expr>>> VarNames;
+
+  // At least one variable name is required.
+  if (getToken().getType() != tok_identifier) {
+    errs() << "expected identifier after var , but received " +
+                  getToken().getLexeme() + " On line : "
+           << getToken().getLine() << "\n";
+    return nullptr;
+  }
+  while (true) {
+    std::string Name = get<std::string>(getToken().getValue());
+    advance(); // eat identifier.
+
+    // Read the optional initializer.
+    std::unique_ptr<Expr> Init;
+    if (getToken().getType() == tok_equal) {
+      advance(); // eat the '='.
+      int line = getToken().getLine();
+      Init = parseExpression();
+      if (!Init) {
+        errs() << format(
+            "Failed to parse initializer for variable. On line : %d", line);
+        return nullptr;
+      }
+    }
+
+    VarNames.push_back(std::make_pair(Name, std::move(Init)));
+
+    // End of var list, exit loop.
+    if (getToken().getType() != ',')
+      break;
+    advance(); // eat the ','.
+
+    if (getToken().getType() != tok_identifier) {
+      errs() << "expected identifier list after var";
+      return nullptr;
+    }
+  }
+	if (getToken().getType() != tok_in) {
+		errs() << "expected 'in' after for";
 		return nullptr;
 	}
-	advance(); // eat ).
-	return expression;
+	advance(); // eat 'in'.
 
+	auto Body = parseExpression();
+	if (!Body)
+		return nullptr;
+
+	return std::make_unique<VarExprAST>(std::move(VarNames), std::move(Body));
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
+
 	const Token& curTok = getToken();
 	switch (curTok.getType()) {
 	case tok_identifier:
@@ -272,9 +327,11 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 		return parseIf();
 	case tok_for:
 		return parseForExpr();
+	case tok_var:
+		return ParseVarExpr();
 	case tok_eof:
 	default:
-		errs() << "Unknown token when expecting an expression. Token : " << curTok.getLexeme() << " On Line : " + curTok.getLine();;
+		errs() << "Unknown token when expecting an expression. Token : " << curTok.getLexeme() << " On Line : " << curTok.getLine() << "\n";
 		return nullptr;
 	};
 
@@ -367,7 +424,7 @@ std::unique_ptr<PrototypeAST> Parser::parsePrototype()
 
 	return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
-/// definition ::= 'def' prototype expression
+/// definition ::= 'def' prototype block
 std::unique_ptr<FunctionAST> Parser::parseDefinition()
 {
 	advance();  // eat def.

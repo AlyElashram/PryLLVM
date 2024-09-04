@@ -8,14 +8,41 @@ Value* intExpr::codegen() {
 Value* doubleExpr::codegen() {
 	return Compiler::getInstance().emitDouble(this->mVal);
 }
-Value* VariableExpr::codegen() {
-	// Look this variable up in the function.
-	Value* V = Compiler::getInstance().getNamedValues()[Name];
-    if (!V)
-		std::cout<< "Unknown variable name";
-	return V;
+Value *VariableExpr::codegen() {
+  // Look this variable up in the function.
+  AllocaInst *V = Compiler::getInstance().getNamedValues()[Name];
+  if (!V)
+    std::cout << "Unknown variable name";
+  return Compiler::getInstance().emitLoad(V, Name);
 }
-Value* BinaryExpr::codegen() {
+llvm::Value *VarExprAST::codegen() {
+    return Compiler::getInstance().emitVar(std::move(VarNames),std::move(Body));
+
+}
+Value * BinaryExpr::codegen() {
+    // Special case '=' because we don't want to emit the LHS as an expression.
+    if (op == tok_equal) {
+        VariableExpr *LHSE = static_cast<VariableExpr*>(LHS.get());
+
+        if (!LHSE) {
+            errs() << "destination of '=' must be a variable.";
+            return nullptr;
+        }
+
+        Value *Val = RHS->codegen();
+        if (!Val)
+            return nullptr;
+
+        // Look up the name.
+        Value *Variable = Compiler::getInstance().getNamedValues()[LHSE->getName()];
+        if (!Variable) {
+            errs() << "Unknown Variable Name";
+            return nullptr;
+        }
+        Compiler::getInstance().StoreValueInVariable(Val, Variable);
+
+        return Val;
+    }
     Value* L = LHS->codegen();
     Value* R = RHS->codegen();
     if (!L || !R)

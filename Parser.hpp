@@ -10,7 +10,7 @@ class Parser {
 	std::vector<Token> mTokens;
 	int index = 0;
 	std::map<TokenType, int> BinopPrecedence = {
-		{tok_less ,10},{tok_greater ,10},{tok_less_equal,10},{tok_greater_equal,10},{tok_equal_equal,12},{tok_bang_equal,12},{tok_minus,15},{tok_plus,20},{tok_star,40},{tok_slash,50}
+		{tok_equal,2},{tok_less ,10},{tok_greater ,10},{tok_less_equal,10},{tok_greater_equal,10},{tok_equal_equal,12},{tok_bang_equal,12},{tok_minus,15},{tok_plus,20},{tok_star,40},{tok_slash,50}
 	};
 
 public :
@@ -26,7 +26,8 @@ public :
 	std::unique_ptr<Expr> number();
 	std::unique_ptr<Expr> parseIdentifier();
 	std::unique_ptr<Expr> parseGroupingExpression();
-	std::unique_ptr<Expr> parsePrimary();
+        std::unique_ptr<Expr> ParseVarExpr();
+        std::unique_ptr<Expr> parsePrimary();
 	std::unique_ptr<Expr> parseExpression();
 	std::unique_ptr<PrototypeAST> parsePrototype();
 	std::unique_ptr<FunctionAST> parseDefinition();

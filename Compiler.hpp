@@ -23,7 +23,7 @@ class Compiler {
 	std::unique_ptr<LLVMContext> TheContext;
 	std::unique_ptr<IRBuilder<>> Builder; 
 	std::unique_ptr<Module> TheModule; 
-	std::map<std::string, Value*> NamedValues;
+	std::map<std::string, AllocaInst*> NamedValues;
     Compiler() {
         TheContext = std::make_unique<llvm::LLVMContext>();
         TheModule = std::make_unique<llvm::Module>("my cool jit", *TheContext);
@@ -41,13 +41,22 @@ public:
         TheModule.release();
     }
 
-	Value * emitNegation(Value * value);
+	Value *emitNegation(Value *value);
+	void StoreValueInVariable(Value *val, Value *value);
+	Value * emitVar(const std::vector<std::pair<std::string, std::unique_ptr<Expr>>>
+                    &VarNames,
+                std::unique_ptr<Expr> body);
 
-	Value * emitAbsolute(Value * value);;
+        ;
     // Delete copy constructor and assignment operator
     Compiler(const Compiler&) = delete;
     Compiler& operator=(const Compiler&) = delete;
-    std::map<std::string, Value*>& getNamedValues() { return NamedValues; }
+    std::map<std::string, AllocaInst*>& getNamedValues() { return NamedValues; }
+    AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
+                                       StringRef VarName);
+
+    Value *emitLoad(AllocaInst *alloca_inst, const std::string &var_name);
+	Value *emitAbsolute(Value *value);
 	Value* emitInt(int value);
 	Value* emitDouble(double value);
 	Value* emitAddition(Value* Left, Value* Right);

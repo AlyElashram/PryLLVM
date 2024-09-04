@@ -5,8 +5,62 @@ using namespace llvm;
 Value * Compiler::emitNegation(Value *value) {
 	return Builder->CreateFNeg(value);
 }
+void Compiler::StoreValueInVariable(Value *val, Value *variable) {
+  Builder->CreateStore(val, variable);
+}
+Value *Compiler::emitVar(
+    const std::vector<std::pair<std::string, std::unique_ptr<Expr>>> &VarNames, std::unique_ptr<Expr> body) {
+	std::vector<AllocaInst *> OldBindings;
 
-Value* Compiler::emitInt(int value) {
+	Function *TheFunction = Builder->GetInsertBlock()->getParent();
+	// Register all variables and emit their initializer.
+	for (unsigned i = 0, e = VarNames.size(); i != e; ++i) {
+		const std::string &VarName = VarNames[i].first;
+		Expr *Init = VarNames[i].second.get();
+		// Emit the initializer before adding the variable to scope, this prevents
+		// the initializer from referencing the variable itself, and permits stuff
+		// like this:
+		//  var a = 1 in
+		//    var a = a in ...   # refers to outer 'a'.
+		Value *InitVal;
+		if (Init) {
+			InitVal = Init->codegen();
+			if (!InitVal)
+				return nullptr;
+		} else { // If not specified, use 0.0.
+			InitVal = ConstantFP::get(*TheContext, APFloat(0.0));
+		}
+
+		AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+		Builder->CreateStore(InitVal, Alloca);
+
+		// Remember the old variable binding so that we can restore the binding when
+		// we unrecurse.
+		OldBindings.push_back(NamedValues[VarName]);
+
+		// Remember this binding.
+		NamedValues[VarName] = Alloca;
+			// Codegen the body, now that all vars are in scope.
+			Value *BodyVal = body->codegen();
+			if (!BodyVal)
+				return nullptr;
+		// Pop all our variables from scope.
+		for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
+			NamedValues[VarNames[i].first] = OldBindings[i];
+		return BodyVal;
+	}
+}
+
+AllocaInst *Compiler::CreateEntryBlockAlloca(Function *TheFunction,
+                                             StringRef VarName) {
+  IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+                   TheFunction->getEntryBlock().begin());
+  return TmpB.CreateAlloca(Type::getDoubleTy(*TheContext), nullptr, VarName);
+}
+Value *Compiler::emitLoad(AllocaInst *alloca_inst, const std::string& var_name) {
+	return Builder->CreateLoad(alloca_inst->getAllocatedType(),alloca_inst,var_name.c_str());
+}
+Value * Compiler::emitInt(int value) {
 	return ConstantFP::get(*TheContext, APFloat(value + 0.0));
 }
 Value* Compiler::emitDouble(double value) {
@@ -113,78 +167,84 @@ Value* Compiler::emitIfThenElse(std::unique_ptr<Expr> condition,std::unique_ptr<
 Constant* Compiler::emitForLoop(const std::string &VarName, std::unique_ptr<Expr> Start, std::unique_ptr<Expr> End,
 	std::unique_ptr<Expr> Step, std::unique_ptr<Expr> Body) {
 
-	// Emit the start code first, without 'variable' in scope.
-	Value *StartVal = Start->codegen();
-	if (!StartVal) {
-		errs() << "Failed to generate Start Value Expression";
-		return nullptr;
-	}
-	// Make the new basic block for the loop header, inserting after current block.
-	Function *TheFunction = Builder->GetInsertBlock()->getParent();
-	BasicBlock *PreheaderBB = Builder->GetInsertBlock();
-	BasicBlock *LoopBB =
-		BasicBlock::Create(*TheContext, "loop", TheFunction);
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+  // Create an alloca for the variable in the entry block.
+  AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
 
-	// Insert an explicit fall through from the current block to the LoopBB.
-	Builder->CreateBr(LoopBB);
-	// Start insertion in LoopBB.
-	Builder->SetInsertPoint(LoopBB);
+  // Emit the start code first, without 'variable' in scope.
+  Value *StartVal = Start->codegen();
+  if (!StartVal)
+    return nullptr;
 
-	// Start the PHI node with an entry for Start.
-	PHINode *Variable = Builder->CreatePHI(Type::getDoubleTy(*TheContext),
-										   2, VarName);
-	Variable->addIncoming(StartVal, PreheaderBB);
-	// Within the loop, the variable is defined equal to the PHI node.  If it
-	// shadows an existing variable, we have to restore it, so save it now.
-	Value *OldVal = NamedValues[VarName];
-	NamedValues[VarName] = Variable;
+  // Store the value into the alloca.
+  Builder->CreateStore(StartVal, Alloca);
 
-	// Emit the body of the loop.  This, like any other expr, can change the
-	// current BB.  Note that we ignore the value computed by the body, but don't
-	// allow an error.
-	if (!Body->codegen())
-		return nullptr;
-	// Emit the step value.
-	Value *StepVal = nullptr;
-	if (Step) {
-		StepVal = Step->codegen();
-		if (!StepVal)
-			return nullptr;
-	} else {
-		// If not specified, use 1.0.
-		StepVal = ConstantFP::get(*TheContext, APFloat(1.0));
-	}
+  // Make the new basic block for the loop header, inserting after current
+  // block.
+  BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
 
-	Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
-	// Compute the end condition.
-	Value *EndCond = End->codegen();
-	if (!EndCond)
-		return nullptr;
+  // Insert an explicit fall through from the current block to the LoopBB.
+  Builder->CreateBr(LoopBB);
 
-	// Convert condition to a bool by comparing non-equal to 0.0.
-	EndCond = Builder->CreateFCmpONE(
-		EndCond, ConstantFP::get(*TheContext, APFloat(0.0)), "loopcond");
-	// Create the "after loop" block and insert it.
-	BasicBlock *LoopEndBB = Builder->GetInsertBlock();
-	BasicBlock *AfterBB =
-		BasicBlock::Create(*TheContext, "afterloop", TheFunction);
+  // Start insertion in LoopBB.
+  Builder->SetInsertPoint(LoopBB);
 
-	// Insert the conditional branch into the end of LoopEndBB.
-	Builder->CreateCondBr(EndCond, LoopBB, AfterBB);
+  // Within the loop, the variable is defined equal to the PHI node.  If it
+  // shadows an existing variable, we have to restore it, so save it now.
+  AllocaInst *OldVal = NamedValues[VarName];
+  NamedValues[VarName] = Alloca;
 
-	// Any new code will be inserted in AfterBB.
-	Builder->SetInsertPoint(AfterBB);
-	// Add a new entry to the PHI node for the backedge.
-	Variable->addIncoming(NextVar, LoopEndBB);
+  // Emit the body of the loop.  This, like any other expr, can change the
+  // current BB.  Note that we ignore the value computed by the body, but don't
+  // allow an error.
+  if (!Body->codegen())
+    return nullptr;
 
-	// Restore the unshadowed variable.
-	if (OldVal)
-		NamedValues[VarName] = OldVal;
-	else
-		NamedValues.erase(VarName);
+  // Emit the step value.
+  Value *StepVal = nullptr;
+  if (Step) {
+    StepVal = Step->codegen();
+    if (!StepVal)
+      return nullptr;
+  } else {
+    // If not specified, use 1.0.
+    StepVal = ConstantFP::get(*TheContext, APFloat(1.0));
+  }
 
-	// for expr always returns 0.0.
-	return Constant::getNullValue(Type::getDoubleTy(*TheContext));
+  // Compute the end condition.
+  Value *EndCond = End->codegen();
+  if (!EndCond)
+    return nullptr;
+
+  // Reload, increment, and restore the alloca.  This handles the case where
+  // the body of the loop mutates the variable.
+  Value *CurVar =
+      Builder->CreateLoad(Alloca->getAllocatedType(), Alloca, VarName.c_str());
+  Value *NextVar = Builder->CreateFAdd(CurVar, StepVal, "nextvar");
+  Builder->CreateStore(NextVar, Alloca);
+
+  // Convert condition to a bool by comparing non-equal to 0.0.
+  EndCond = Builder->CreateFCmpONE(
+      EndCond, ConstantFP::get(*TheContext, APFloat(0.0)), "loopcond");
+
+  // Create the "after loop" block and insert it.
+  BasicBlock *AfterBB =
+      BasicBlock::Create(*TheContext, "afterloop", TheFunction);
+
+  // Insert the conditional branch into the end of LoopEndBB.
+  Builder->CreateCondBr(EndCond, LoopBB, AfterBB);
+
+  // Any new code will be inserted in AfterBB.
+  Builder->SetInsertPoint(AfterBB);
+
+  // Restore the unshadowed variable.
+  if (OldVal)
+    NamedValues[VarName] = OldVal;
+  else
+    NamedValues.erase(VarName);
+
+  // for expr always returns 0.0.
+  return Constant::getNullValue(Type::getDoubleTy(*TheContext));
 }
 
 Value* Compiler::emitCall(llvm::Function* F, std::vector<Value*> Args, std::string name) {
@@ -211,8 +271,17 @@ Function* Compiler::emitFunction(Function* TheFunction, std::unique_ptr<Expr> Bo
 
 	// Record the function arguments in the NamedValues map.
 	NamedValues.clear();
-	for (auto& Arg : TheFunction->args())
-		NamedValues[std::string(Arg.getName())] = &Arg;
+        for (auto &Arg : TheFunction->args()) {
+          // Create an alloca for this variable.
+          AllocaInst *Alloca =
+              CreateEntryBlockAlloca(TheFunction, Arg.getName());
+
+          // Store the initial value into the alloca.
+          Builder->CreateStore(&Arg, Alloca);
+
+          // Add arguments to variable symbol table.
+          NamedValues[std::string(Arg.getName())] = Alloca;
+        }
 
 	// Finish off the function.
 	Value* retVal = Body->codegen();
