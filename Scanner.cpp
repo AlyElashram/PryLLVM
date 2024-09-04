@@ -145,16 +145,7 @@ TokenType Scanner::identifierType(size_t start, size_t current) {
 		}
 		break;
 
-	case 'i':
-		if (start - current > 1) {
-			switch (this->mSourceCode[start + 1]) {
-			case 'f':
-				return checkKeyword(2,0,start+1,current,"",tok_if);
-			case 'n':
-				return checkKeyword(2,0,start+1,current,"",tok_in);
-
-			}
-		}
+	case 'i': return checkKeyword(1, 1, start, current, "f", tok_if);
 	case 'n': return checkKeyword(1, 2, start, current, "il", tok_nil);
 	case 'o': return checkKeyword(1, 1, start, current, "r", tok_or);
 	case 'p': return checkKeyword(1, 4, start, current, "rint", tok_print);
