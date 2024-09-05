@@ -10,9 +10,12 @@ Value *doubleExpr::codegen() {
 }
 Value *VariableExpr::codegen() {
   // Look this variable up in the function.
-  AllocaInst *V = Compiler::getInstance().getNamedValues()[Name];
-  if (!V)
+  AllocaInst *V = Compiler::getInstance().getNamedValue(Name);
+  if (!V) {
     std::cout << "Unknown variable name";
+    return nullptr;
+  }
+
   return Compiler::getInstance().emitLoad(V, Name);
 }
 llvm::Value *VarExprAST::codegen() {
@@ -33,7 +36,7 @@ Value *BinaryExpr::codegen() {
       return nullptr;
 
     // Look up the name.
-    Value *Variable = Compiler::getInstance().getNamedValues()[LHSE->getName()];
+    Value *Variable = Compiler::getInstance().getNamedValue(LHSE->getName());
     if (!Variable) {
       errs() << "Unknown Variable Name";
       return nullptr;

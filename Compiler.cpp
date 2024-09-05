@@ -8,6 +8,13 @@ Value *Compiler::emitNegation(Value *value) {
 void Compiler::StoreValueInVariable(Value *val, Value *variable) {
   Builder->CreateStore(val, variable);
 }
+void Compiler::createScope() {
+  NamedValues.push_back({});
+}
+void Compiler::popScope() {
+  NamedValues.pop_back();
+}
+
 Value *Compiler::emitVar(
     const std::vector<std::pair<std::string, std::unique_ptr<Expr>>>
         &VarNames) {
@@ -33,15 +40,44 @@ Value *Compiler::emitVar(
     }
     AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
     Builder->CreateStore(InitVal, Alloca);
+    NamedValues.back()[VarName] = Alloca;
     return Alloca;
   }
 }
 
 AllocaInst *Compiler::CreateEntryBlockAlloca(Function *TheFunction,
                                              StringRef VarName) {
-  IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
-                   TheFunction->getEntryBlock().begin());
+  // we do not want to emit stuff on a global function scope anymore we will settle for generating on the current line
+  // IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+  //                  TheFunction->getEntryBlock().begin());
+  IRBuilder<> TmpB(Builder->GetInsertBlock(),
+                   Builder->GetInsertPoint());
   return TmpB.CreateAlloca(Type::getDoubleTy(*TheContext), nullptr, VarName);
+
+  Builder->CreateAlloca(Type::getDoubleTy(*TheContext), nullptr, VarName);
+
+}
+AllocaInst* Compiler::getNamedValue(const std::string &name) {
+  // Traverse the chain of scopes from the end to the beginning
+  for (int i = static_cast<int>(NamedValues.size()) - 1; i >= 0; --i) {
+    auto& map = NamedValues[i];
+
+    for (const auto& pair : map) {
+      std::cout << pair.first << std::endl; // Print the key (name)
+    }
+    std::cout << name;
+    // Check if the map contains the key
+    auto it = map.find(name);
+    bool is = it == map.end();
+
+    if (it != map.end()) {
+      auto val = it->second; // Assuming second() returns an AllocaInst*
+      if (val) {
+        return val;
+      }
+    }
+  }
+  return nullptr;
 }
 Value *Compiler::emitLoad(AllocaInst *alloca_inst,
                           const std::string &var_name) {
@@ -89,6 +125,7 @@ Value *Compiler::emitIfThenElse(std::unique_ptr<Expr> condition,
                                 std::unique_ptr<Expr> then,
                                 std::unique_ptr<Expr> Else) {
 
+  createScope();
   Value *condV = condition->codegen();
   if (!condV) {
     errs() << "Failed to generate condition";
@@ -143,6 +180,7 @@ Value *Compiler::emitIfThenElse(std::unique_ptr<Expr> condition,
 
   PN->addIncoming(ThenVal, ThenBB);
   PN->addIncoming(ElseVal, ElseBB);
+  popScope();
   return PN;
 }
 
@@ -151,7 +189,7 @@ Constant *Compiler::emitForLoop(const std::string &VarName,
                                 std::unique_ptr<Expr> End,
                                 std::unique_ptr<Expr> Step,
                                 std::unique_ptr<Expr> Body) {
-
+createScope();
   Function *TheFunction = Builder->GetInsertBlock()->getParent();
   // Create an alloca for the variable in the entry block.
   AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
@@ -176,8 +214,11 @@ Constant *Compiler::emitForLoop(const std::string &VarName,
 
   // Within the loop, the variable is defined equal to the PHI node.  If it
   // shadows an existing variable, we have to restore it, so save it now.
-  AllocaInst *OldVal = NamedValues[VarName];
-  NamedValues[VarName] = Alloca;
+
+  // This will not be needed since we now create it inside the local scope
+  // AllocaInst *OldVal = NamedValues[VarName];
+  // Fetches the newest scope and assigns to it
+  NamedValues.back()[VarName] = Alloca;
 
   // Emit the body of the loop.  This, like any other expr, can change the
   // current BB.  Note that we ignore the value computed by the body, but don't
@@ -223,12 +264,13 @@ Constant *Compiler::emitForLoop(const std::string &VarName,
   Builder->SetInsertPoint(AfterBB);
 
   // Restore the unshadowed variable.
-  if (OldVal)
-    NamedValues[VarName] = OldVal;
-  else
-    NamedValues.erase(VarName);
+  // if (OldVal)
+  //   NamedValues[VarName] = OldVal;
+  // else
+  //   NamedValues.erase(VarName);
 
   // for expr always returns 0.0.
+  popScope();
   return Constant::getNullValue(Type::getDoubleTy(*TheContext));
 }
 
@@ -252,11 +294,13 @@ Function *Compiler::emitPrototype(const std::string &name,
 Function *Compiler::emitFunction(Function *TheFunction,
                                  std::unique_ptr<Expr> Body) {
   // Create a new basic block to start insertion into.
+  createScope();
   BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
   Builder->SetInsertPoint(BB);
 
   // Record the function arguments in the NamedValues map.
-  NamedValues.clear();
+
+  NamedValues.back().clear();
   for (auto &Arg : TheFunction->args()) {
     // Create an alloca for this variable.
     AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Arg.getName());
@@ -265,7 +309,7 @@ Function *Compiler::emitFunction(Function *TheFunction,
     Builder->CreateStore(&Arg, Alloca);
 
     // Add arguments to variable symbol table.
-    NamedValues[std::string(Arg.getName())] = Alloca;
+    NamedValues.back()[std::string(Arg.getName())] = Alloca;
   }
 
   // Finish off the function.
@@ -282,5 +326,6 @@ Function *Compiler::emitFunction(Function *TheFunction,
   if (verifyFunction(*TheFunction, &errs())) {
     errs() << "Found errors in function";
   }
+  popScope();
   return TheFunction;
 }
