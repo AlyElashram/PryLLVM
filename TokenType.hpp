@@ -48,10 +48,13 @@ enum TokenType : int {
 	tok_identifier = 36,
 	tok_number = 37,
 	tok_string = 38,
+	tok_int = 39,
+	tok_double = 40,
+	tok_bool = 41,
 
 	// Commands
-	tok_def = 39,
-	tok_extern = 40,
+	tok_def = 42,
+	tok_extern = 43,
 };
 
 #endif
