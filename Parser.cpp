@@ -1,14 +1,4 @@
 #include "Parser.hpp"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 #include <map>
 using namespace llvm;
@@ -68,6 +58,7 @@ std::unique_ptr<Expr> Parser::parseDoubleExpression() {
 std::unique_ptr<Expr> Parser::parseBlock() {
   advance(); // Eat Left Curly Brace
   std::vector<std::unique_ptr<Expr>> exprs = {};
+  // we should create a new Scope here and add it to the named values
 
   // Keeps parsing which will definetly ruin the results after right if you
   // forget the brace let's check after if we reached the end and the final
@@ -279,6 +270,7 @@ std::unique_ptr<Expr> Parser::ParseVarExpr() {
       }
     }
 
+    // add element to latest map
     VarNames.push_back(std::make_pair(Name, std::move(Init)));
 
     // End of var list, exit loop.
