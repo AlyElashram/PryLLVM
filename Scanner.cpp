@@ -123,8 +123,18 @@ TokenType Scanner::checkKeyword(int start, int length,
 TokenType Scanner::identifierType(size_t start, size_t current) {
 	switch (this->mSourceCode[start]) {
 	case 'a': return checkKeyword(1, 2, start, current, std::string("nd"), tok_and);
+	case 'b': return checkKeyword(1,3,start,current,"ool",tok_bool);
 	case 'c': return checkKeyword(1, 4, start, current, "lass", tok_class);
-	case'd': return checkKeyword(1, 2, start, current, "ef", tok_def);
+	case'd':
+		if (start - current > 1) {
+			switch (this->mSourceCode[start + 1]) {
+			case 'e':
+				return checkKeyword(1, 2, start, current, "ef", tok_def);
+			case 'o':
+				return checkKeyword(2, 4, start+1, current, "uble", tok_double);
+			}
+		}
+		break;
 	case 'e': 
 		if (start - current > 1) {
 			switch (this->mSourceCode[start + 1]) {
@@ -144,8 +154,16 @@ TokenType Scanner::identifierType(size_t start, size_t current) {
 			}
 		}
 		break;
-
-	case 'i': return checkKeyword(1, 1, start, current, "f", tok_if);
+	case 'i':
+		if (start - current > 1) {
+			switch (this->mSourceCode[start + 1]) {
+			case 'f':
+				return checkKeyword(2, 0, start + 1, current, "", tok_if);
+			case 'n':
+				return checkKeyword(2, 1, start + 1, current, "t", tok_int);
+			}
+		}
+		break;
 	case 'n': return checkKeyword(1, 2, start, current, "il", tok_nil);
 	case 'o': return checkKeyword(1, 1, start, current, "r", tok_or);
 	case 'p': return checkKeyword(1, 4, start, current, "rint", tok_print);
