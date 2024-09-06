@@ -60,15 +60,9 @@ AllocaInst *Compiler::CreateEntryBlockAlloca(Function *TheFunction,
 AllocaInst* Compiler::getNamedValue(const std::string &name) {
   // Traverse the chain of scopes from the end to the beginning
   for (int i = static_cast<int>(NamedValues.size()) - 1; i >= 0; --i) {
-    auto& map = NamedValues[i];
-
-    for (const auto& pair : map) {
-      std::cout << pair.first << std::endl; // Print the key (name)
-    }
-    std::cout << name;
+    auto &map = NamedValues[i];
     // Check if the map contains the key
     auto it = map.find(name);
-    bool is = it == map.end();
 
     if (it != map.end()) {
       auto val = it->second; // Assuming second() returns an AllocaInst*
@@ -189,7 +183,7 @@ Constant *Compiler::emitForLoop(const std::string &VarName,
                                 std::unique_ptr<Expr> End,
                                 std::unique_ptr<Expr> Step,
                                 std::unique_ptr<Expr> Body) {
-createScope();
+  createScope();
   Function *TheFunction = Builder->GetInsertBlock()->getParent();
   // Create an alloca for the variable in the entry block.
   AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
@@ -212,12 +206,6 @@ createScope();
   // Start insertion in LoopBB.
   Builder->SetInsertPoint(LoopBB);
 
-  // Within the loop, the variable is defined equal to the PHI node.  If it
-  // shadows an existing variable, we have to restore it, so save it now.
-
-  // This will not be needed since we now create it inside the local scope
-  // AllocaInst *OldVal = NamedValues[VarName];
-  // Fetches the newest scope and assigns to it
   NamedValues.back()[VarName] = Alloca;
 
   // Emit the body of the loop.  This, like any other expr, can change the
@@ -263,12 +251,6 @@ createScope();
   // Any new code will be inserted in AfterBB.
   Builder->SetInsertPoint(AfterBB);
 
-  // Restore the unshadowed variable.
-  // if (OldVal)
-  //   NamedValues[VarName] = OldVal;
-  // else
-  //   NamedValues.erase(VarName);
-
   // for expr always returns 0.0.
   popScope();
   return Constant::getNullValue(Type::getDoubleTy(*TheContext));
@@ -299,8 +281,6 @@ Function *Compiler::emitFunction(Function *TheFunction,
   Builder->SetInsertPoint(BB);
 
   // Record the function arguments in the NamedValues map.
-
-  NamedValues.back().clear();
   for (auto &Arg : TheFunction->args()) {
     // Create an alloca for this variable.
     AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Arg.getName());

@@ -56,7 +56,7 @@ public:
     }
     AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
                                        StringRef VarName);
-    AllocaInst * getNamedValue(const std::string & name);
+    AllocaInst *getNamedValue(const std::string &name);
     Value *emitLoad(AllocaInst *alloca_inst, const std::string &var_name);
     Value *emitAbsolute(Value *value);
     Value *emitInt(int value);
