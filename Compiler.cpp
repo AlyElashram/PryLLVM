@@ -14,7 +14,7 @@ void Compiler::createScope() {
 void Compiler::popScope() {
   NamedValues.pop_back();
 }
-
+//TODO: Add var type to AST node to know what to emit
 Value *Compiler::emitVar(
     const std::vector<std::pair<std::string, std::unique_ptr<Expr>>>
         &VarNames) {
@@ -77,6 +77,9 @@ Value *Compiler::emitLoad(AllocaInst *alloca_inst,
                           const std::string &var_name) {
   return Builder->CreateLoad(alloca_inst->getAllocatedType(), alloca_inst,
                              var_name.c_str());
+}
+Value *Compiler::emitBoolean(bool m_val) {
+  return ConstantInt::get(*TheContext,APInt(1,8));
 }
 Value *Compiler::emitInt(int value) {
   return ConstantFP::get(*TheContext, APFloat(value + 0.0));

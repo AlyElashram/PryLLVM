@@ -3,10 +3,9 @@
 #include <map>
 using namespace llvm;
 std::unique_ptr<Expr> Parser::parseUnaryExpression() {
-  // TODO: Refactor this into a centralized function in the parser that returns
-  // a boolean
-  //  Function should check if a passed Token& is in one of the unary operators
-  if (getToken().getType() != tok_minus) {
+
+  const auto& type = getToken().getType();
+  if (type!=tok_minus && type!=tok_bang) {
     return parsePrimary();
   }
   auto Token = getToken();
@@ -285,6 +284,16 @@ std::unique_ptr<Expr> Parser::ParseVarExpr() {
   }
   return std::make_unique<VarExprAST>(std::move(VarNames));
 }
+std::unique_ptr<Expr> Parser::parseBool() {
+
+  //Token will be tok_false or tok_true
+  auto val = getToken().getType();
+  advance();
+
+  // Quirky way of setting value to be true or false inside the bool expr node
+  return std::make_unique<boolExpr>(val == tok_true);
+
+}
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
   const Token &curTok = getToken();
@@ -301,6 +310,9 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
     return parseForExpr();
   case tok_var:
     return ParseVarExpr();
+  case tok_false:
+  case tok_true:
+    return parseBool();
   case tok_eof:
   default:
     errs() << "Unknown token when expecting an expression. Token : "
