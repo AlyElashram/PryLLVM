@@ -29,6 +29,7 @@ public:
   std::unique_ptr<Expr> parseIdentifier();
   std::unique_ptr<Expr> parseGroupingExpression();
   std::unique_ptr<Expr> ParseVarExpr();
+  std::unique_ptr<Expr> parseBool();
   std::unique_ptr<Expr> parsePrimary();
   std::unique_ptr<Expr> parseExpression();
   std::unique_ptr<PrototypeAST> parsePrototype();

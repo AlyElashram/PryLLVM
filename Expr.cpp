@@ -8,6 +8,9 @@ Value *intExpr::codegen() {
 Value *doubleExpr::codegen() {
   return Compiler::getInstance().emitDouble(this->mVal);
 }
+llvm::Value *boolExpr::codegen() {
+  return Compiler::getInstance().emitBoolean(this->mVal);
+}
 Value *VariableExpr::codegen() {
   // Look this variable up in the function.
   AllocaInst *V = Compiler::getInstance().getNamedValue(Name);

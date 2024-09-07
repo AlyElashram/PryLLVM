@@ -27,6 +27,14 @@ public:
   llvm::Value *codegen() override;
 };
 
+class boolExpr : public Expr {
+  bool mVal;
+
+public:
+  boolExpr(const bool &Val) : mVal(Val){};
+  llvm::Value *codegen() override;
+};
+
 // When calling a variable by name
 class VariableExpr : public Expr {
   std::string Name;

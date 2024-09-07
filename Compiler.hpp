@@ -59,6 +59,7 @@ public:
     AllocaInst *getNamedValue(const std::string &name);
     Value *emitLoad(AllocaInst *alloca_inst, const std::string &var_name);
     Value *emitAbsolute(Value *value);
+    Value *emitBoolean(bool m_val);
     Value *emitInt(int value);
     Value *emitDouble(double value);
     Value *emitAddition(Value *Left, Value *Right);
